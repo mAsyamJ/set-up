@@ -1,0 +1,7 @@
+[Unit]
+Description=Aegis local stack (Kiro bridge + Hermes gateway)
+After=network-online.target
+Wants=kiro-openai-bridge.service hermes-gateway.service
+
+[Install]
+WantedBy=default.target

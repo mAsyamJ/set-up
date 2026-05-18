@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "real-hermes": {
+      "command": "/home/asyam/dev/Project/aegis-hackathon-kit/tools/real-hermes-mcp/node_modules/.bin/tsx",
+      "args": ["/home/asyam/dev/Project/aegis-hackathon-kit/tools/real-hermes-mcp/src/server.ts"],
+      "env": {
+        "AEGIS_WORKSPACE": "/home/asyam/dev/Project/aegis-hackathon-kit",
+        "HERMES_BIN": "/home/asyam/.local/bin/hermes",
+        "KIRO_BRIDGE_URL": "http://127.0.0.1:8787"
+      },
+      "disabled": false,
+      "timeout": 120000
+    }
+  }
+}

@@ -1,0 +1,2791 @@
+Generate the complete v4 masterplan with full AI and Solidity sections
+
+Skrip
+
+Generate the complete v4 masterplan with full AI and Solidity sections
+markdown
+
+# Aegis RPC — 24-Hour Hackathon Technical Masterplan
+
+> **SEABW 2026 "Play to Build" Vibe Coding Hackathon**
+> May 20–21, 2026 · ICONSIAM Hall, Bangkok, Thailand
+> Total prize pool: $5,000 USD · Judging: Originality 30%, Problem-Solving 30%, Completeness 20%, Scalability 20%
+
+---
+
+**Document version:** v4 (adds full AI transaction analysis layer + complete Solidity architecture)
+**Stack:** Next.js App Router · TypeScript · Tailwind · shadcn/ui · viem · Zod · Supabase · Base Sepolia · Chainlink AggregatorV3Interface · Foundry · Anthropic Claude API · Vercel
+
+> **What changed from v3 — the two gaps fixed:**
+>
+> **Gap 1 — AI layer redesigned.** v3 treated AI as a template renderer (a lookup table by `reasonCode`). A judge reading the code would see through it immediately. v4 defines AI as a four-role analysis system: `UnknownSelectorAnalyzer` (AI describes novel calldata), `WarnContextSynthesizer` (AI synthesizes multi-signal WARN context), `MemoGenerator` (human-readable verdict explanation), and `PreSigningAssist` (AI helps operator decide on override). Full prompt contracts, input/output schemas, async pipeline, and template fallbacks are all specified.
+>
+> **Gap 2 — Solidity architecture fully designed.** v3 said "Decision: CUT for MVP." That was wrong for a Web3 conference hackathon. v4 includes complete Solidity pseudocode for 4 MUST contracts + 3 STRETCH contracts, Foundry test cases, deployment scripts, and backend integration patterns. `AegisPolicyRegistry.sol` gives judges the on-chain answer to "what's deployed?" and gives operators a trust primitive: policy commitments are on-chain.
+
+---
+
+## Table of Contents
+
+1. [Hackathon Executive Summary](#1-hackathon-executive-summary)
+2. [Judging Criteria Strategy](#2-judging-criteria-strategy)
+3. [Problem Definition](#3-problem-definition)
+4. [Solution Overview](#4-solution-overview)
+5. [End-to-End Architecture](#5-end-to-end-architecture)
+6. [Repository Structure](#6-repository-structure)
+7. [Frontend Technical Plan](#7-frontend-technical-plan)
+8. [Backend API Technical Plan](#8-backend-api-technical-plan)
+9. [Transaction Decoder Design](#9-transaction-decoder-design)
+10. [Policy Engine Design](#10-policy-engine-design)
+11. [Adapter Layer Design](#11-adapter-layer-design)
+12. [Simulation Engine Design](#12-simulation-engine-design)
+13. [Database / Audit Log Design](#13-database--audit-log-design)
+14. [AI Transaction Analysis Layer](#14-ai-transaction-analysis-layer)
+15. [Smart Contract Architecture](#15-smart-contract-architecture)
+16. [Docker & Local Development](#16-docker--local-development)
+17. [Deployment Plan](#17-deployment-plan)
+18. [24-Hour Build Plan](#18-24-hour-build-plan)
+19. [Agent-Swarm Plan](#19-agent-swarm-plan)
+20. [Testing Plan](#20-testing-plan)
+21. [Demo Script](#21-demo-script)
+22. [Competitive Analysis](#22-competitive-analysis)
+23. [Business & Scalability](#23-business--scalability)
+24. [README Draft](#24-readme-draft)
+25. [Final Cut List](#25-final-cut-list)
+26. [Final Recommendation](#26-final-recommendation)
+
+---
+
+## 1. Hackathon Executive Summary
+
+### The Problem
+Web3 transactions are becoming automated and high-value, but the layer between a signer and the chain — the RPC layer — forwards blindly. It doesn't know intent, policy, budgets, or whether an autonomous agent is allowed to perform the action.
+
+### The Solution
+Aegis RPC is a programmable transaction screening API: decodes intent, evaluates deterministic JSON policies, collects adapter signals (including live Chainlink price), uses AI to analyze suspicious context and unknown calldata, and returns **SAFE / WARN / BLOCK** before broadcast — with every decision anchored on-chain via a deployed policy registry.
+
+### Why Now
+- AI agent frameworks (ElizaOS, AutoGPT, CrewAI) are delegating real funds with no guardrails
+- DeFi keepers and bots run 24/7 with no shared risk layer
+- RWA tokenization ($26B+ distributed, per RWA.xyz) needs institutional-grade policy enforcement
+- Existing security tools sit inside consumer wallets (wrong seam for orgs) or post-broadcast (too late)
+
+### Why This Fits SEABW 2026
+SEABW's five themes include **The Agentic Economy** and **The Base Layer Imperative**. Aegis directly addresses both: base-layer infrastructure that makes agentic execution safe, with on-chain policy anchoring for auditability.
+
+### Why It Can Be Built in 24 Hours
+- Core engine: JSON-policy interpreter (~200 lines TypeScript)
+- Chainlink adapter: single `viem.readContract` call
+- AI layer: async Claude API call with structured prompt (template fallback always available)
+- Contracts: 4 MUST contracts ≈ 250 lines Solidity, ~2h in Foundry
+- AI tools (Claude, Cursor, Kiro) accelerate every layer
+
+### Corrected Positioning (from mentor grill — unchanged)
+- Preflight API is the product; RPC compatibility is the distribution surface
+- AI agent + operator approval queue is the lead demo
+- Chainlink earns its place through stale-feed BLOCK enforcement
+- Roadmap is 3 phases, not 6
+- On-chain contracts provide auditability, not the core engine
+
+---
+
+## 2. Judging Criteria Strategy
+
+> Source: seablockchainweek.org/hackathon — confirmed: Originality 30%, Problem-Solving 30%, Completeness 20%, Scalability 20%
+
+| Criterion | Weight | What judges want | How Aegis scores | Demo evidence | Risk | Mitigation | Target |
+|---|---|---|---|---|---|---|---|
+| **Originality** | 30% | Creative, novel approach | RPC-compatible screening API + AI calldata analysis + on-chain policy anchoring — not a wallet plugin, not post-broadcast monitoring | Agent BLOCK with live Chainlink + AI explaining the risk + on-chain policy hash link | "Isn't this just a firewall?" | Unknown selector AI analysis + on-chain registry = genuine differentiation | 9/10 |
+| **Problem-Solving** | 30% | Solves a real, urgent problem | Stops out-of-policy agent actions before broadcast; AI explains novel threats; on-chain registry proves policies can't be backdated | 5 demo scenarios; AI memo for WARN case; policy hash on Base Sepolia explorer | "Blowfish does this" | Lead with agent demo; acknowledge Blowfish is different seam | 8.5/10 |
+| **Completeness** | 20% | It actually works | Working API + deployed contracts + dashboard + AI memos | All 5 scenarios live; contracts verified on basescan | Time pressure | Cut DeFi/RWA pages; contracts are 2h; AI is async | 8/10 |
+| **Scalability** | 20% | Can grow into a business | 3-phase roadmap; on-chain policy registry as trust primitive; adapter marketplace as long-term moat | Roadmap slide; policy mode toggle; registry on explorer | "5 different companies" | 3 phases with one through-line | 8/10 |
+
+### Submission Requirements
+
+| Required | Our deliverable |
+|---|---|
+| **Idea Summary** | `Aegis_RPC_Idea_Summary_v3.pdf` (already built) |
+| **Pitch Deck** | 8-slide deck |
+| **GitHub Repository** | `aegis-rpc/` with Vercel deploy + deployed contract addresses in README |
+| **AI Collaboration Proof** | `Co-authored-by: Claude` commit tags + exported Claude prompt logs |
+
+---
+
+## 3. Problem Definition
+
+### Core Problem Statement
+Web3 execution is automated, high-value, and irreversible. Three distinct gaps exist that no current tool covers simultaneously:
+
+1. **Pre-broadcast policy enforcement** for org-controlled signers (agents, keepers, operators)
+2. **AI-assisted analysis** of unknown calldata patterns that deterministic rules can't pre-codify
+3. **On-chain auditability** that proves policy state existed before a transaction was sent
+
+### The Honest Architectural Seam
+Aegis works cleanest where the same org controls both the signer and the RPC:
+- AI agents executing via org-controlled wallets
+- DeFi keepers and bots running org scripts
+- Treasury operators pushing institutional transactions
+- Protocol backends executing admin or keeper operations
+
+We don't claim to stop a phishing victim on a hostile RPC.
+
+### Problem Breakdown by Vertical
+
+| Vertical | User | Pain | Existing workaround | Why it's weak | Aegis solution |
+|---|---|---|---|---|---|
+| **AI agents** | Agent platform operator | Agents sign outside budget, call unapproved contracts, approve unsafe spenders, loop into runaway behavior | Custom guardrails per framework | Every framework rebuilds from scratch | Agent policy template + AI analyzes unrecognized calldata |
+| **DeFi protocols** | Protocol team running keepers | Keepers execute with no shared risk layer | Ad-hoc scripts | Breaks every upgrade; no audit trail | DeFi policy + Chainlink enforces freshness |
+| **RWA / treasuries** | Treasury operator | Operators execute mint/redeem/transfer without preflight policy | Manual Slack approval | No enforcement, no audit trail | RWA template + on-chain policy hash proves policy existed |
+| **Protocol backends** | DevOps/infra team | Admin scripts execute without reusable risk gate | Custom monitoring | Every incident postmortem finds same missing policy | Security RPC endpoint: reusable policy gateway |
+| **Wallet vendors** | Wallet product team | Want safety differentiation without building the engine | Integrate Blowfish | Only covers consumer wallets | Aegis preflight API as drop-in |
+
+### Why Existing Tools Don't Fill This Gap
+
+| Category | Examples | Gap Aegis fills |
+|---|---|---|
+| Wallet pre-signing checks | Blowfish, Wallet Guard | Only fire inside partner wallets. Nothing for agents/backends/orgs. No on-chain audit. |
+| Post-broadcast monitoring | Forta, Hypernative, Tenderly | After-the-fact. Cannot stop the transaction. |
+| Protocol policy & relaying | OpenZeppelin Defender, Gelato | SDK-heavy, wrong shape for agent platforms. |
+| Private RPC routing | Flashbots Protect, MEV Blocker | Solves MEV / frontrunning, not policy. |
+
+---
+
+## 4. Solution Overview
+
+### One-Sentence Technical Description
+Aegis RPC is a JSON-policy interpreter + AI transaction analyzer wrapped in two interchangeable interfaces: a preflight API for pre-signing screening and a JSON-RPC-compatible gateway for broadcast-layer checkpoints — sharing one engine, one policy format, one adapter layer, one AI analysis layer, and one on-chain policy registry.
+
+### Product Modules
+
+```
+Aegis RPC
+├── Preflight API (/api/preflight)              — primary screening interface
+├── JSON-RPC Gateway (/api/rpc)                 — drop-in RPC compatibility
+├── Transaction Decoder                         — calldata → TxIntent + isUnknownSelector flag
+├── Use Case Classifier                         — agent / defi / rwa / wallet / treasury / backend
+├── Policy Engine                               — deterministic SAFE / WARN / BLOCK
+├── Adapter Layer (deterministic)
+│   ├── ChainlinkPriceAdapter                   — AggregatorV3Interface: live price + freshness + USD limit
+│   ├── ApprovalRiskAdapter                     — MaxUint256 detection + unknown spender
+│   ├── ContractCodeAdapter                     — eth_getCode → EOA / contract / empty
+│   ├── AllowlistAdapter                        — address/selector allow/deny lists
+│   └── SimulationAdapter                       — eth_call revert detection
+├── AI Transaction Analysis Layer               ← FULLY REDESIGNED
+│   ├── UnknownSelectorAnalyzer                 — AI describes novel calldata semantically
+│   ├── WarnContextSynthesizer                  — AI synthesizes multi-signal WARN context
+│   ├── MemoGenerator                           — AI produces human-readable verdict explanation
+│   └── PreSigningAssist                        — AI explanation shown BEFORE operator override
+├── Audit Log (Supabase)                        — every decision + AI analysis persisted
+├── OpsRisk Dashboard                           — operational proof surface
+└── Smart Contract Layer (Base Sepolia)         ← FULLY DESIGNED
+    ├── AegisPolicyRegistry.sol                 — policy hash store + events (MUST)
+    ├── ChainlinkFeedConsumer.sol               — on-chain AggregatorV3 reader (MUST)
+    ├── DemoERC20.sol                           — token for approval demo (SHOULD)
+    ├── DemoSpender.sol                         — unknown spender for BLOCK demo (SHOULD)
+    ├── AgentUseCasePolicyApp.sol               — agent policy enforcement (STRETCH)
+    ├── DeFiUseCasePolicyApp.sol                — swap deviation guard (STRETCH)
+    └── RWAUseCasePolicyApp.sol                 — NAV-sensitive policy (STRETCH)
+```
+
+### Core Rule
+> **AI explains and assists. Deterministic policy decides.**
+>
+> The policy engine always runs first and produces the verdict. AI never overrides or delays that verdict. AI runs after, async, and enriches the audit log, dashboard, and operator UX.
+
+### System Flowchart
+
+```mermaid
+flowchart TD
+    A[Wallet / AI Agent / DeFi Backend / Treasury] --> B[Aegis RPC Gateway]
+    B --> C{Method Router}
+    C -->|Read-only| D[Passthrough to Base Sepolia RPC]
+    C -->|Transaction| E[Transaction Decoder]
+    E --> F[Use Case Classifier]
+    F --> G[Adapter Layer - DETERMINISTIC]
+    G --> G1[ChainlinkPriceAdapter]
+    G --> G2[ApprovalRiskAdapter]
+    G --> G3[ContractCodeAdapter]
+    G --> G4[AllowlistAdapter]
+    G --> G5[SimulationAdapter]
+    G1 & G2 & G3 & G4 & G5 --> H[Policy Engine]
+    H --> I{Verdict}
+    I -->|SAFE| J[Forward to Underlying RPC]
+    I -->|WARN| K[Return Warning + Override Option]
+    I -->|BLOCK| L[Reject Before Broadcast]
+    J & K & L --> M[Audit Log - Supabase]
+    M --> N1[AI Analysis Layer - ASYNC]
+    N1 --> N2[UnknownSelectorAnalyzer]
+    N1 --> N3[WarnContextSynthesizer]
+    N1 --> N4[MemoGenerator]
+    N1 --> N5[PreSigningAssist]
+    N2 & N3 & N4 & N5 --> M
+    M --> O[OpsRisk Dashboard]
+    H -.->|optional verify| P[AegisPolicyRegistry.sol - Base Sepolia]
+```
+
+---
+
+## 5. End-to-End Architecture
+
+### Layer Diagram
+
+| Layer | Technology | Key Components |
+|---|---|---|
+| **Frontend** | Next.js App Router, Tailwind, shadcn/ui | Landing, Demo panels, OpsRisk dashboard, AI memo panel, on-chain verifier |
+| **API** | Next.js Route Handlers (Vercel serverless) | `/api/rpc`, `/api/preflight`, `/api/ai-analyze`, `/api/events`, `/api/policies`, `/api/adapters/chainlink`, `/api/safe-send` |
+| **Engine** | TypeScript pure functions | Transaction decoder, policy engine, verdict engine, use-case classifier |
+| **Adapters** | TypeScript + viem | Chainlink, ApprovalRisk, ContractCode, Allowlist, Simulation |
+| **AI Layer** | Anthropic Claude API + template fallback | UnknownSelectorAnalyzer, WarnContextSynthesizer, MemoGenerator, PreSigningAssist |
+| **Storage** | Supabase (Postgres) | aegis_events (with AI fields), aegis_policies |
+| **Chain** | Base Sepolia | AegisPolicyRegistry (deployed), ChainlinkFeedConsumer (deployed), DemoERC20, DemoSpender |
+| **Chain RPC** | Alchemy free tier | Underlying Base Sepolia RPC |
+| **Contracts** | Foundry + Solidity 0.8.24 | 4 MUST + 3 STRETCH |
+
+### Preflight Sequence (with AI and contracts)
+
+```mermaid
+sequenceDiagram
+    participant App as Agent / Wallet / Backend
+    participant Aegis as /api/preflight
+    participant Decoder as Transaction Decoder
+    participant Policy as Policy Engine
+    participant Adapter as Adapter Layer
+    participant Chain as Base Sepolia RPC
+    participant DB as Supabase
+    participant AI as AI Analysis Layer
+
+    App->>Aegis: POST { from, to, value, data, policyId }
+    Aegis->>Decoder: normalize to TxIntent
+    Decoder-->>Aegis: { selector, decodedFunction, decodedArgs, isUnknownSelector }
+    par Collect adapter signals in parallel
+        Aegis->>Chain: readContract(latestRoundData) via ChainlinkPriceAdapter
+        Aegis->>Chain: getCode(to) via ContractCodeAdapter
+        Aegis->>Chain: eth_call via SimulationAdapter
+    end
+    Adapter-->>Aegis: AdapterSignal[]
+    Aegis->>Policy: evaluate(intent, policy, signals)
+    Policy-->>Aegis: { verdict, reasonCode, needsAiAnalysis }
+    Aegis->>DB: insert aegis_event (memo: null, memoStatus: generating)
+    Aegis-->>App: { verdict, reasonCode, signals, requestId, memoStatus: generating }
+    Note over App,Aegis: Response returned immediately — deterministic path complete
+    par Async AI analysis (non-blocking)
+        Aegis->>AI: analyze({ intent, verdict, signals, isUnknownSelector })
+        AI-->>DB: UPDATE aegis_event SET ai_memo, ai_analysis, ai_generated_at
+    end
+```
+
+### WARN Pre-Signing Assist Sequence
+
+```mermaid
+sequenceDiagram
+    participant Operator as Operator UI
+    participant Aegis as Aegis API
+    participant AI as AI PreSigningAssist
+    participant DB as Supabase
+
+    Operator->>Aegis: POST /api/preflight (tx intent)
+    Aegis-->>Operator: { verdict: WARN, reasonCode, signals, requestId }
+    Note over Operator: WARN card with "View AI Analysis" + "Override" buttons
+    Operator->>Aegis: GET /api/ai-analyze?requestId=req_123
+    Aegis->>DB: SELECT ai_analysis WHERE request_id = req_123
+    DB-->>Aegis: { preSigningAssist: "Before overriding: ..." }
+    Aegis-->>Operator: { memo, riskSummary, preSigningAssist, unknownSelectorGuess }
+    Note over Operator: Reads AI explanation before deciding to override
+    Operator->>Aegis: POST /api/safe-send { requestId, override: true }
+    Aegis->>Chain: broadcast tx
+    Chain-->>Aegis: txHash
+    Aegis-->>Operator: { txHash, broadcasted: true, overridden: true }
+```
+
+---
+
+## 6. Repository Structure
+
+```
+aegis-rpc/
+├── app/                              # Next.js App Router
+│   ├── page.tsx                      # Landing page
+│   ├── layout.tsx
+│   ├── dashboard/
+│   │   └── page.tsx                  # OpsRisk dashboard
+│   ├── demo/
+│   │   ├── wallet/page.tsx
+│   │   ├── agent/page.tsx            # LEAD DEMO
+│   │   ├── defi/page.tsx             # (stretch)
+│   │   └── rwa/page.tsx              # (stretch)
+│   └── api/
+│       ├── rpc/route.ts              # JSON-RPC gateway
+│       ├── preflight/route.ts        # Primary screening API
+│       ├── safe-send/route.ts        # Forward after SAFE/override
+│       ├── events/route.ts           # Audit event log
+│       ├── policies/route.ts         # Policy CRUD
+│       ├── adapters/
+│       │   └── chainlink/route.ts    # Chainlink health check
+│       └── ai-analyze/route.ts       # Retrieve AI analysis by requestId
+├── components/
+│   ├── layout/
+│   │   ├── AppShell.tsx
+│   │   └── Sidebar.tsx
+│   ├── demo/
+│   │   ├── PreflightForm.tsx
+│   │   ├── VerdictCard.tsx
+│   │   ├── DemoScenarioSelector.tsx
+│   │   ├── PolicyModeToggle.tsx
+│   │   └── PreSigningAssistPanel.tsx  # NEW: AI explanation before override
+│   └── dashboard/
+│       ├── EventTimeline.tsx
+│       ├── VerdictBadge.tsx
+│       ├── AdapterSignalCard.tsx
+│       ├── AiMemoPanel.tsx
+│       └── RpcStatusCard.tsx
+├── lib/
+│   ├── rpc/
+│   │   ├── rpcRouter.ts
+│   │   ├── passthrough.ts
+│   │   └── jsonRpcErrors.ts
+│   ├── engine/
+│   │   ├── transactionDecoder.ts     # + isUnknownSelector flag
+│   │   ├── useCaseClassifier.ts
+│   │   ├── policyEngine.ts           # + needsAiAnalysis output
+│   │   ├── verdictEngine.ts
+│   │   └── riskScoring.ts
+│   ├── adapters/
+│   │   ├── types.ts
+│   │   ├── chainlinkPriceAdapter.ts
+│   │   ├── approvalRiskAdapter.ts
+│   │   ├── contractCodeAdapter.ts
+│   │   ├── allowlistAdapter.ts
+│   │   └── simulationAdapter.ts
+│   ├── policies/
+│   │   ├── schemas.ts
+│   │   ├── defaultPolicies.ts
+│   │   └── templates.ts
+│   ├── chain/
+│   │   ├── clients.ts
+│   │   ├── abis.ts                   # Includes AegisPolicyRegistry ABI
+│   │   ├── addresses.ts              # Deployed contract addresses
+│   │   └── policyVerifier.ts         # Read on-chain policy hash
+│   ├── db/
+│   │   ├── supabase.ts
+│   │   ├── auditLog.ts
+│   │   └── policiesRepo.ts
+│   └── ai/                           # FULLY REDESIGNED
+│       ├── types.ts                  # AiAnalysisInput, AiAnalysisOutput
+│       ├── memoService.ts            # Orchestrates all 4 AI roles
+│       ├── unknownSelectorAnalyzer.ts
+│       ├── warnContextSynthesizer.ts
+│       ├── memoGenerator.ts
+│       ├── preSigningAssist.ts
+│       ├── prompts.ts                # All prompt templates
+│       └── fallbacks.ts              # Template fallbacks by reasonCode
+├── contracts/                        # FULLY NEW: Foundry project
+│   ├── foundry.toml
+│   ├── src/
+│   │   ├── interfaces/
+│   │   │   ├── IAggregatorV3.sol             # MUST
+│   │   │   └── IAegisPolicyRegistry.sol       # MUST
+│   │   ├── registry/
+│   │   │   └── AegisPolicyRegistry.sol        # MUST
+│   │   ├── adapters/
+│   │   │   └── ChainlinkFeedConsumer.sol      # MUST
+│   │   ├── usecases/
+│   │   │   ├── AgentUseCasePolicyApp.sol      # STRETCH
+│   │   │   ├── DeFiUseCasePolicyApp.sol       # STRETCH
+│   │   │   └── RWAUseCasePolicyApp.sol        # STRETCH
+│   │   └── demo/
+│   │       ├── DemoERC20.sol                  # SHOULD
+│   │       └── DemoSpender.sol                # SHOULD
+│   ├── script/
+│   │   ├── DeployBaseSepolia.s.sol            # MUST
+│   │   └── RegisterPolicies.s.sol             # MUST
+│   ├── test/
+│   │   ├── AegisPolicyRegistry.t.sol
+│   │   └── ChainlinkFeedConsumer.t.sol
+│   └── deployments/
+│       └── base-sepolia.json                  # Auto-generated after deploy
+├── public/
+├── .env.example
+├── next.config.ts
+├── tailwind.config.ts
+├── tsconfig.json
+├── package.json
+└── README.md
+```
+
+### Priority Tags
+
+| Folder/File | Priority | Time Budget |
+|---|---|---|
+| `lib/engine/*` | **MUST** | 2h |
+| `lib/adapters/*` | **MUST** | 2h |
+| `lib/rpc/*` | **MUST** | 1h |
+| `app/api/preflight/route.ts` | **MUST** | 1h |
+| `app/api/rpc/route.ts` | **MUST** | 30min |
+| `contracts/src/registry/AegisPolicyRegistry.sol` | **MUST** | 45min |
+| `contracts/src/adapters/ChainlinkFeedConsumer.sol` | **MUST** | 30min |
+| `contracts/script/DeployBaseSepolia.s.sol` | **MUST** | 30min |
+| `lib/ai/memoGenerator.ts` + `fallbacks.ts` | **MUST** | 45min |
+| `lib/ai/unknownSelectorAnalyzer.ts` | **SHOULD** | 30min |
+| `lib/ai/warnContextSynthesizer.ts` | **SHOULD** | 30min |
+| `lib/ai/preSigningAssist.ts` | **SHOULD** | 30min |
+| `contracts/src/demo/DemoERC20.sol` + `DemoSpender.sol` | **SHOULD** | 30min |
+| `app/demo/agent/page.tsx` | **MUST** | 2h |
+| `app/dashboard/page.tsx` | **MUST** | 1.5h |
+| `components/demo/PreSigningAssistPanel.tsx` | **SHOULD** | 30min |
+| `lib/db/*` | **MUST** | 45min |
+| `contracts/src/usecases/*.sol` | **STRETCH** | 3h total |
+| `app/demo/defi/page.tsx` | **STRETCH** | 1h |
+| `app/demo/rwa/page.tsx` | **STRETCH** | 1h |
+
+---
+
+## 7. Frontend Technical Plan
+
+### Pages
+
+| Page | Purpose | Key Components | Demo Value | Judge Value |
+|---|---|---|---|---|
+| `/` | Landing | Hero, architecture, demo links, deployed contract links | First impression | Shows full-stack scope |
+| `/demo/agent` | **LEAD DEMO** | PreflightForm, VerdictCard, PolicyModeToggle, DemoScenarioSelector, PreSigningAssistPanel | Agent $5K swap BLOCK → mode flip → WARN + AI pre-signing assist → override → tx hash | End-to-end product proof |
+| `/demo/wallet` | Wallet demo | PreflightForm, VerdictCard | approve(MaxUint256) BLOCK + AI memo | Relatable hook |
+| `/dashboard` | OpsRisk | EventTimeline, VerdictBadge, AdapterSignalCard, AiMemoPanel, RpcStatusCard | All demo decisions + AI memos + on-chain policy links | Completeness + business surface |
+| `/demo/defi` | DeFi (stretch) | PreflightForm, VerdictCard | Swap deviation + Chainlink | Multi-vertical |
+| `/demo/rwa` | RWA (stretch) | PreflightForm, VerdictCard | Mint value limit | Institutional use case |
+
+### Key Components
+
+| Component | Props | Behavior |
+|---|---|---|
+| `PreflightForm` | `{ policyId, defaultScenario? }` | Form fields + scenario selector. Shows loading state, then VerdictCard. |
+| `VerdictCard` | `{ verdict, reasonCode, signals, memo, memoStatus, requestId, broadcasted }` | Green/amber/red card. Polls `/api/ai-analyze` when `memoStatus === "generating"`. Shows AI memo when ready. |
+| `PreSigningAssistPanel` | `{ requestId, onOverride }` | Shown only for WARN verdict. Fetches AI pre-signing explanation. Operator reads before clicking override. |
+| `DemoScenarioSelector` | `{ scenarios, onSelect }` | "Safe transfer" / "$5K agent swap" / "Unlimited approval" / "Stale price" |
+| `PolicyModeToggle` | `{ policyId, currentMode, onToggle }` | Three-way: enforce / warn / observe. Calls PUT /api/policies/{id} |
+| `EventTimeline` | `{ events }` | Scrollable events with badge, decoded function, AI memo snippet, on-chain hash link |
+| `AdapterSignalCard` | `{ signal }` | Adapter name, status, reason, data (price, age, USD) |
+| `AiMemoPanel` | `{ memo, confidence }` | Explanation text + "AI assists only — policy decides" disclaimer |
+| `RpcStatusCard` | `{ chainId, blockNumber, latency, contractsDeployed }` | Gateway health + deployed contract addresses linking to basescan |
+
+---
+
+## 8. Backend API Technical Plan
+
+### POST /api/rpc — JSON-RPC Gateway
+
+**Passthrough:** `eth_chainId`, `eth_blockNumber`, `eth_getBalance`, `eth_call`, `eth_getTransactionCount`, `eth_estimateGas`, `eth_gasPrice`, `eth_maxPriorityFeePerGas`, `eth_getCode`, `eth_getTransactionByHash`, `eth_getTransactionReceipt`
+
+**Intercepted:** `eth_sendRawTransaction`, `aegis_preflight`, `aegis_sendTransaction`
+
+```json
+// Passthrough request + response
+{ "jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": [] }
+{ "jsonrpc": "2.0", "id": 1, "result": "0x1a2b3c" }
+
+// BLOCK error response
+{
+  "jsonrpc": "2.0", "id": 1,
+  "error": {
+    "code": -32090,
+    "message": "Aegis BLOCK: unlimited approval to unknown spender",
+    "data": { "verdict": "BLOCK", "reasonCode": "UNLIMITED_APPROVAL_UNKNOWN_SPENDER",
+               "broadcasted": false, "requestId": "req_abc123" }
+  }
+}
+```
+
+### POST /api/preflight — Primary Screening Interface
+
+```json
+// Request
+{
+  "chainId": 84532, "from": "0xAgent",
+  "to": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "valueWei": "0",
+  "data": "0x095ea7b3000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "policyId": "default-wallet-policy"
+}
+
+// Response — returned fast, AI memo arrives async
+{
+  "requestId": "req_abc123",
+  "verdict": "BLOCK",
+  "reasonCode": "UNLIMITED_APPROVAL_UNKNOWN_SPENDER",
+  "broadcasted": false,
+  "intent": {
+    "selector": "0x095ea7b3",
+    "decodedFunction": "approve(address,uint256)",
+    "decodedArgs": { "spender": "0xDemoSpender", "amount": "115792...MAX" },
+    "isUnknownSelector": false,
+    "useCase": "wallet"
+  },
+  "signals": [
+    { "adapter": "approval-risk", "status": "BLOCK",
+      "reasonCode": "UNLIMITED_APPROVAL_UNKNOWN_SPENDER",
+      "message": "MaxUint256 approval to non-allowlisted spender." }
+  ],
+  "memo": null,
+  "memoStatus": "generating",
+  "onChainPolicyHash": "0xabc123...",
+  "latencyMs": 312
+}
+```
+
+### GET /api/ai-analyze?requestId= — Async AI Retrieval
+
+```json
+// Available ~1-3s after preflight returns
+{
+  "requestId": "req_abc123",
+  "memo": "Aegis blocked this transaction because it requests unlimited ERC20 approval to an address not on your policy allowlist. Unlimited approvals give permanent token access to the spender. Verify the spender address before proceeding.",
+  "unknownSelectorGuess": null,
+  "riskSummary": null,
+  "preSigningAssist": null,
+  "confidence": "high",
+  "generatedAt": "2026-05-20T14:30:03Z"
+}
+
+// WARN case — preSigningAssist populated
+{
+  "requestId": "req_def456",
+  "memo": "Aegis flagged this ETH transfer because the value ($4,850 at current ETH/USD price) exceeds your agent policy cap of $500 per action. The Chainlink ETH/USD feed is fresh (23s old).",
+  "riskSummary": "High relative risk: agent action exceeds per-action USD limit by 9.7x.",
+  "preSigningAssist": "Before overriding: this swap exceeds your agent's $500/action policy cap by 9.7x. The Chainlink feed is fresh (23s), so the USD calculation is accurate. Override only if this is an intentional manual exception — consider updating your policy limit if this amount recurs.",
+  "confidence": "high",
+  "generatedAt": "2026-05-20T14:30:04Z"
+}
+```
+
+### POST /api/safe-send
+
+```json
+// Request
+{ "requestId": "req_abc123", "override": false }
+
+// Response — SAFE forwarded
+{ "txHash": "0xabc...", "broadcasted": true, "verdict": "SAFE" }
+
+// Response — WARN overridden
+{ "txHash": "0xdef...", "broadcasted": true, "verdict": "WARN", "overridden": true }
+
+// Response — BLOCK cannot override in enforce mode
+{ "broadcasted": false, "verdict": "BLOCK",
+  "error": "BLOCK verdict cannot be overridden in enforce mode" }
+```
+
+### GET /api/events
+
+```json
+{
+  "events": [{
+    "id": "uuid", "requestId": "req_abc123",
+    "createdAt": "2026-05-20T14:30:00Z",
+    "chainId": 84532, "method": "aegis_preflight",
+    "fromAddress": "0xAgent", "toAddress": "0x036C...",
+    "valueWei": "0", "valueUsd": null,
+    "selector": "0x095ea7b3", "decodedFunction": "approve(address,uint256)",
+    "isUnknownSelector": false, "useCase": "wallet",
+    "policyId": "default-wallet-policy",
+    "verdict": "BLOCK", "reasonCode": "UNLIMITED_APPROVAL_UNKNOWN_SPENDER",
+    "signals": [...],
+    "broadcasted": false, "txHash": null,
+    "aiMemo": "Aegis blocked this transaction because...",
+    "aiAnalysis": { "riskSummary": null, "preSigningAssist": null, "confidence": "high" },
+    "onChainPolicyHash": "0xabc123...",
+    "latencyMs": 312
+  }]
+}
+```
+
+---
+
+## 9. Transaction Decoder Design
+
+### TxIntent Model
+
+```typescript
+export type TxIntent = {
+  requestId: string;
+  chainId: number;
+  method: "eth_sendRawTransaction" | "aegis_preflight" | "aegis_sendTransaction";
+  from?: `0x${string}`;
+  to?: `0x${string}`;
+  valueWei: bigint;
+  data: `0x${string}`;
+  rawTx?: `0x${string}`;
+  selector?: string;
+  decodedFunction?: string;
+  decodedArgs?: Record;
+  useCase?: "wallet" | "agent" | "defi" | "rwa" | "treasury" | "backend" | "unknown";
+  isUnknownSelector: boolean;   // NEW: triggers AI UnknownSelectorAnalyzer
+  calldataLength: number;       // NEW: helps AI assess complexity
+};
+```
+
+### Known Selectors
+
+| Selector | Function | Extra detection |
+|---|---|---|
+| `0x095ea7b3` | `approve(address,uint256)` | Check amount == MaxUint256 |
+| `0xa9059cbb` | `transfer(address,uint256)` | Check value vs. policy limit |
+| `0x23b872dd` | `transferFrom(address,address,uint256)` | Check all addresses |
+| `0x7ff36ab5` | `swapExactETHForTokens(...)` | Uniswap V2 swap |
+| `0x38ed1739` | `swapExactTokensForTokens(...)` | Uniswap V2 swap |
+| Unknown | Unrecognized | `isUnknownSelector = true` → AI analysis |
+
+### Decoder Pseudocode
+
+```typescript
+import { decodeFunctionData, maxUint256 } from 'viem';
+
+export function decodeTxIntent(raw: PreflightRequest): TxIntent {
+  const intent: TxIntent = {
+    requestId: crypto.randomUUID(),
+    chainId: raw.chainId,
+    method: "aegis_preflight",
+    from: raw.from as `0x${string}`,
+    to: raw.to as `0x${string}`,
+    valueWei: BigInt(raw.valueWei || "0"),
+    data: (raw.data || "0x") as `0x${string}`,
+    isUnknownSelector: false,
+    calldataLength: raw.data?.length ?? 0,
+  };
+
+  if (intent.data.length >= 10) {
+    intent.selector = intent.data.slice(0, 10).toLowerCase();
+  }
+
+  if (intent.selector === "0x095ea7b3") {
+    try {
+      const { args } = decodeFunctionData({ abi: erc20Abi, data: intent.data });
+      intent.decodedFunction = "approve(address,uint256)";
+      intent.decodedArgs = { spender: args[0], amount: (args[1] as bigint).toString() };
+    } catch { intent.isUnknownSelector = true; }
+
+  } else if (intent.selector === "0xa9059cbb") {
+    try {
+      const { args } = decodeFunctionData({ abi: erc20Abi, data: intent.data });
+      intent.decodedFunction = "transfer(address,uint256)";
+      intent.decodedArgs = { to: args[0], amount: (args[1] as bigint).toString() };
+    } catch { intent.isUnknownSelector = true; }
+
+  } else if (intent.selector === "0x23b872dd") {
+    try {
+      const { args } = decodeFunctionData({ abi: erc20Abi, data: intent.data });
+      intent.decodedFunction = "transferFrom(address,address,uint256)";
+      intent.decodedArgs = { from: args[0], to: args[1], amount: (args[2] as bigint).toString() };
+    } catch { intent.isUnknownSelector = true; }
+
+  } else if (!intent.data || intent.data === "0x") {
+    intent.decodedFunction = "native_transfer";
+    intent.isUnknownSelector = false;
+
+  } else {
+    // Unknown selector — flag for AI analysis
+    intent.isUnknownSelector = true;
+    intent.decodedFunction = `unknown(${intent.selector})`;
+  }
+
+  intent.useCase = classifyUseCase(intent, raw.policyId);
+  return intent;
+}
+```
+
+---
+
+## 10. Policy Engine Design
+
+### AegisPolicy Schema
+
+```typescript
+export type AegisPolicy = {
+  id: string;
+  name: string;
+  mode: "observe" | "warn" | "enforce";
+  template: "wallet" | "agent" | "defi" | "rwa" | "treasury" | "backend";
+  chainId: number;
+  onChainPolicyId?: `0x${string}`;    // bytes32 id in AegisPolicyRegistry
+  onChainPolicyHash?: `0x${string}`;  // keccak256(JSON.stringify(policy config))
+
+  limits: {
+    maxNativeTransferUsd?: number;
+    maxSingleAgentActionUsd?: number;
+    maxDailyAgentSpendUsd?: number;
+    maxSwapDeviationBps?: number;
+    maxApprovalUsd?: number;
+  };
+  rules: {
+    blockUnlimitedApproval: boolean;
+    requireSpenderAllowlist: boolean;
+    blockUnknownContracts: boolean;
+    requireFreshPrice: boolean;
+    blockSimulationRevert: boolean;
+    flagUnknownSelectors: boolean;    // NEW: routes to AI UnknownSelectorAnalyzer
+  };
+  allowlists: {
+    agents: `0x${string}`[];
+    recipients: `0x${string}`[];
+    spenders: `0x${string}`[];
+    contracts: `0x${string}`[];
+    selectors: string[];
+  };
+  denylists: {
+    addresses: `0x${string}`[];
+    selectors: string[];
+  };
+};
+```
+
+### Verdict Engine
+
+```typescript
+export type Verdict = "SAFE" | "WARN" | "BLOCK";
+
+export function finalizeVerdict(
+  signals: AdapterSignal[],
+  intent: TxIntent,
+  policy: AegisPolicy
+): { verdict: Verdict; reasonCode: string; needsAiAnalysis: boolean } {
+
+  const block = signals.find(s => s.status === "BLOCK");
+  if (block) {
+    return {
+      verdict: policy.mode === "enforce" ? "BLOCK" : "WARN",
+      reasonCode: block.reasonCode ?? "ADAPTER_BLOCK",
+      needsAiAnalysis: false,
+    };
+  }
+
+  const warn = signals.find(s => s.status === "WARN" || s.status === "ERROR");
+  if (warn) {
+    return {
+      verdict: "WARN",
+      reasonCode: warn.reasonCode ?? "WARNING_SIGNAL",
+      needsAiAnalysis: intent.isUnknownSelector || signals.length > 2,
+    };
+  }
+
+  // Unknown selector in flag mode → WARN + AI
+  if (intent.isUnknownSelector && policy.rules.flagUnknownSelectors) {
+    return {
+      verdict: "WARN",
+      reasonCode: "UNKNOWN_FUNCTION_SELECTOR",
+      needsAiAnalysis: true,
+    };
+  }
+
+  return {
+    verdict: "SAFE",
+    reasonCode: "ALL_CHECKS_PASSED",
+    needsAiAnalysis: false,
+  };
+}
+```
+
+---
+
+## 11. Adapter Layer Design
+
+### Adapter Interface
+
+```typescript
+export type AdapterStatus = "OK" | "WARN" | "BLOCK" | "ERROR";
+
+export type AdapterSignal = {
+  adapter: string;
+  status: AdapterStatus;
+  reasonCode?: string;
+  message: string;
+  data?: Record;
+  latencyMs?: number;
+};
+
+export interface AegisAdapter {
+  name: string;
+  supports(intent: TxIntent, policy: AegisPolicy): boolean;
+  getSignal(intent: TxIntent, policy: AegisPolicy): Promise;
+}
+```
+
+### ChainlinkPriceAdapter (MUST)
+
+```typescript
+export class ChainlinkPriceAdapter implements AegisAdapter {
+  name = "chainlink-price";
+
+  supports(intent: TxIntent, policy: AegisPolicy) {
+    return policy.rules.requireFreshPrice;
+  }
+
+  async getSignal(intent: TxIntent, policy: AegisPolicy): Promise {
+    const start = Date.now();
+    const feedAddress = "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1"; // Base Sepolia ETH/USD
+
+    try {
+      const [, answer, , updatedAt] = await publicClient.readContract({
+        address: feedAddress, abi: aggregatorV3Abi, functionName: "latestRoundData",
+      }) as [bigint, bigint, bigint, bigint, bigint];
+
+      const decimals = await publicClient.readContract({
+        address: feedAddress, abi: aggregatorV3Abi, functionName: "decimals",
+      }) as number;
+
+      const age = Math.floor(Date.now() / 1000) - Number(updatedAt);
+      const maxAge = policy.adapters?.chainlinkPrice?.maxAgeSeconds ?? 3600;
+      const priceE8 = Number(answer);
+
+      if (priceE8 <= 0) return {
+        adapter: this.name, status: "ERROR", reasonCode: "INVALID_PRICE",
+        message: "Feed returned non-positive price.", data: { priceE8 }, latencyMs: Date.now() - start,
+      };
+
+      if (age > maxAge) return {
+        adapter: this.name, status: "BLOCK", reasonCode: "STALE_PRICE_FEED",
+        message: `ETH/USD feed stale by ${age}s (max ${maxAge}s). High-value tx blocked.`,
+        data: { priceE8, age, maxAge }, latencyMs: Date.now() - start,
+      };
+
+      let valueUsd: number | undefined;
+      let exceedsLimit = false;
+      if (intent.valueWei > 0n) {
+        valueUsd = Number(intent.valueWei) / 1e18 * (priceE8 / 1e8);
+        const limit = policy.limits.maxNativeTransferUsd ?? policy.limits.maxSingleAgentActionUsd;
+        if (limit && valueUsd > limit) exceedsLimit = true;
+      }
+
+      return {
+        adapter: this.name,
+        status: exceedsLimit ? "BLOCK" : "OK",
+        reasonCode: exceedsLimit ? "EXCEEDS_USD_LIMIT" : undefined,
+        message: exceedsLimit
+          ? `Action value $${valueUsd?.toFixed(2)} exceeds policy limit $${policy.limits.maxSingleAgentActionUsd}`
+          : `ETH/USD: $${(priceE8/1e8).toFixed(2)}, feed age: ${age}s`,
+        data: { priceE8, age, decimals, valueUsd, feedAddress },
+        latencyMs: Date.now() - start,
+      };
+    } catch (err) {
+      return { adapter: this.name, status: "ERROR", reasonCode: "FEED_READ_ERROR",
+               message: `Failed to read Chainlink feed: ${(err as Error).message}`,
+               latencyMs: Date.now() - start };
+    }
+  }
+}
+```
+
+### ApprovalRiskAdapter (MUST)
+
+```typescript
+export class ApprovalRiskAdapter implements AegisAdapter {
+  name = "approval-risk";
+
+  supports(intent: TxIntent) { return intent.selector === "0x095ea7b3"; }
+
+  async getSignal(intent: TxIntent, policy: AegisPolicy): Promise {
+    const amount = BigInt(intent.decodedArgs?.amount as string ?? "0");
+    const spender = (intent.decodedArgs?.spender as string ?? "").toLowerCase() as `0x${string}`;
+    const isUnlimited = amount === maxUint256;
+    const isAllowlisted = policy.allowlists.spenders.map(s => s.toLowerCase()).includes(spender);
+
+    if (isUnlimited && !isAllowlisted && policy.rules.blockUnlimitedApproval) {
+      return { adapter: this.name, status: "BLOCK",
+               reasonCode: "UNLIMITED_APPROVAL_UNKNOWN_SPENDER",
+               message: `MaxUint256 approval to non-allowlisted spender ${spender}`,
+               data: { spender, isUnlimited, isAllowlisted } };
+    }
+    if (isUnlimited && isAllowlisted) {
+      return { adapter: this.name, status: "WARN",
+               reasonCode: "UNLIMITED_APPROVAL_ALLOWLISTED",
+               message: `MaxUint256 approval to allowlisted spender ${spender} — review recommended`,
+               data: { spender, isAllowlisted } };
+    }
+    return { adapter: this.name, status: "OK", message: "Approval within policy." };
+  }
+}
+```
+
+---
+
+## 12. Simulation Engine Design
+
+```typescript
+export class SimulationAdapter implements AegisAdapter {
+  name = "simulation";
+
+  supports(intent: TxIntent, policy: AegisPolicy) {
+    return Boolean(intent.to) && policy.rules.blockSimulationRevert;
+  }
+
+  async getSignal(intent: TxIntent, policy: AegisPolicy): Promise {
+    const start = Date.now();
+    try {
+      await publicClient.call({
+        account: intent.from, to: intent.to,
+        data: intent.data, value: intent.valueWei,
+      });
+      return { adapter: this.name, status: "OK", message: "Simulation succeeded.", latencyMs: Date.now() - start };
+    } catch (err) {
+      return { adapter: this.name, status: "WARN", reasonCode: "SIMULATION_REVERT",
+               message: `Simulation reverted: ${(err as Error).message?.slice(0, 100)}`,
+               data: { error: (err as Error).message }, latencyMs: Date.now() - start };
+    }
+  }
+}
+```
+
+**Can detect:** revert, invalid target, insufficient balance, contract call failure.
+**Cannot detect:** MEV/sandwich, post-block price movement, complex state diffs, private mempool.
+
+---
+
+## 13. Database / Audit Log Design
+
+```sql
+-- aegis_events: updated with AI analysis columns
+CREATE TABLE IF NOT EXISTS aegis_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  chain_id INTEGER NOT NULL,
+  method TEXT NOT NULL,
+  from_address TEXT,
+  to_address TEXT,
+  value_wei TEXT,
+  value_usd NUMERIC,
+  selector TEXT,
+  decoded_function TEXT,
+  decoded_args JSONB,
+  use_case TEXT,
+  is_unknown_selector BOOLEAN DEFAULT false,
+  policy_id TEXT,
+  policy_template TEXT,
+  on_chain_policy_hash TEXT,
+  verdict TEXT NOT NULL,
+  reason_code TEXT,
+  signals JSONB,
+  needs_ai_analysis BOOLEAN DEFAULT false,
+  broadcasted BOOLEAN DEFAULT false,
+  tx_hash TEXT,
+  -- AI analysis fields (populated async after response is returned)
+  ai_memo TEXT,
+  ai_unknown_selector_guess TEXT,
+  ai_risk_summary TEXT,
+  ai_pre_signing_assist TEXT,
+  ai_confidence TEXT,
+  ai_generated_at TIMESTAMPTZ,
+  latency_ms INTEGER
+);
+
+-- aegis_policies
+CREATE TABLE IF NOT EXISTS aegis_policies (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  template TEXT NOT NULL,
+  mode TEXT NOT NULL DEFAULT 'enforce',
+  chain_id INTEGER NOT NULL DEFAULT 84532,
+  config JSONB NOT NULL,
+  on_chain_policy_id TEXT,
+  on_chain_policy_hash TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_aegis_events_created_at ON aegis_events(created_at DESC);
+CREATE INDEX idx_aegis_events_verdict ON aegis_events(verdict);
+CREATE INDEX idx_aegis_events_request_id ON aegis_events(request_id);
+```
+
+---
+
+## 14. AI Transaction Analysis Layer
+
+> **This is a complete redesign.** The v3 masterplan had `memoTemplates.ts` as the primary AI path — a static string lookup table by `reasonCode`. That's not AI analysis; it's a switch statement. A judge reading the code would see through it. This section defines a real AI system with four distinct roles, structured prompts, proper async pipeline, and meaningful fallbacks.
+
+### Core Principle (unchanged)
+**AI explains and assists. Deterministic policy decides.** The policy engine produces the verdict first. AI never overrides or delays it. AI runs after, async, and its output enriches the audit log, dashboard, and operator UX.
+
+### Why AI Adds Real Value
+
+Deterministic rules handle what can be codified in advance. But real transactions include:
+- Function selectors that have never been seen before
+- WARN situations where three marginal signals together form a genuine pattern
+- Operators facing override decisions who need a plain-English summary of actual risk — not a generic warning
+
+That's where AI adds genuine value: as an analyst and communicator, not a decision-maker.
+
+### The Four AI Roles
+
+```
+AI Transaction Analysis Layer
+├── Role 1: UnknownSelectorAnalyzer
+│   When: intent.isUnknownSelector === true
+│   Input: selector hex, calldata bytes, target address, contract code snippet
+│   Task: attempt semantic description of what the calldata is doing
+│   Output: { guess: string, confidence: "high"|"medium"|"low"|"none", reasoning: string }
+│
+├── Role 2: WarnContextSynthesizer
+│   When: verdict === "WARN" && signals.length > 1
+│   Input: all AdapterSignals, intent, policy template
+│   Task: synthesize coherent risk summary from multiple partial signals
+│   Output: { riskSummary: string, primaryConcern: string }
+│
+├── Role 3: MemoGenerator
+│   When: always (every verdict)
+│   Input: verdict, reasonCode, signals, intent, onChainPolicyHash
+│   Task: produce 2-4 sentence human-readable explanation
+│   Output: { memo: string }
+│
+└── Role 4: PreSigningAssist
+    When: verdict === "WARN" (operator considering override)
+    Input: all above + policy limits + what was flagged
+    Task: give operator specific information to make a good override decision
+    Output: { preSigningAssist: string }
+```
+
+### Type Definitions
+
+```typescript
+// lib/ai/types.ts
+
+export type AiAnalysisInput = {
+  requestId: string;
+  intent: TxIntent;
+  verdict: Verdict;
+  reasonCode: string;
+  signals: AdapterSignal[];
+  policy: Pick;
+  needsUnknownSelectorAnalysis: boolean;
+  needsWarnSynthesis: boolean;
+};
+
+export type AiAnalysisOutput = {
+  requestId: string;
+  memo: string;
+  unknownSelectorGuess?: string;
+  unknownSelectorConfidence?: "high" | "medium" | "low" | "none";
+  riskSummary?: string;
+  primaryConcern?: string;
+  preSigningAssist?: string;
+  confidence: "high" | "medium" | "low";
+  generatedAt: string;
+  usedFallback: boolean;
+};
+```
+
+### Prompt Templates (lib/ai/prompts.ts)
+
+Every prompt follows the same structure:
+- SYSTEM CONTEXT: what Aegis is, what AI's role is (not decision-maker)
+- TASK DEFINITION: what this specific role does
+- INPUT: structured JSON of relevant facts
+- OUTPUT FORMAT: strict JSON schema
+- CONSTRAINTS: factual, no hallucination, say "unknown" if uncertain
+
+```typescript
+export function buildMemoPrompt(input: AiAnalysisInput): string {
+  return `You are the AI memo service for Aegis RPC, a pre-broadcast transaction screening system.
+Your role: explain what happened in plain English. You never make enforcement decisions.
+Be concise (2-4 sentences), factual, specific. Do not recommend actions — only explain facts.
+
+Verdict: ${input.verdict}
+Reason code: ${input.reasonCode}
+Decoded function: ${input.intent.decodedFunction ?? "unknown"}
+Decoded args: ${JSON.stringify(input.intent.decodedArgs ?? {})}
+Adapter signals: ${JSON.stringify(input.signals.map(s => ({ adapter: s.adapter, status: s.status, reasonCode: s.reasonCode, message: s.message })))}
+Policy template: ${input.policy.template}
+Policy mode: ${input.policy.mode}
+
+Respond ONLY with valid JSON (no markdown, no fences):
+{ "memo": "<2-4 sentence explanation>" }`;
+}
+
+export function buildUnknownSelectorPrompt(input: AiAnalysisInput): string {
+  return `You are analyzing unknown EVM transaction calldata for Aegis RPC.
+The transaction decoder does not recognize the function selector.
+Attempt to identify what this transaction might be doing based on available signals.
+Be honest about uncertainty. Say "unknown" if you cannot determine it.
+Do NOT hallucinate function names or fabricate contract behavior.
+
+Target address: ${input.intent.to}
+Function selector: ${input.intent.selector ?? "none"}
+Calldata length: ${input.intent.calldataLength} bytes
+Raw calldata (first 200 chars): ${input.intent.data.slice(0, 200)}
+Chain ID: ${input.intent.chainId}
+
+Respond ONLY with valid JSON (no markdown, no fences):
+{
+  "guess": "",
+  "confidence": "high" | "medium" | "low" | "none",
+  "reasoning": "<1-2 sentence explanation>"
+}`;
+}
+
+export function buildWarnSynthesisPrompt(input: AiAnalysisInput): string {
+  return `You are synthesizing risk signals for Aegis RPC's operator dashboard.
+Multiple adapter signals triggered a WARN verdict. Synthesize into a coherent risk summary.
+Be specific about which signals matter most and why they matter together.
+
+Intent: ${input.intent.decodedFunction ?? "unknown"} to ${input.intent.to}
+Value: ${input.intent.valueWei.toString()} wei
+Signals:
+${input.signals.map(s => `- ${s.adapter}: ${s.status} — ${s.message}`).join("\n")}
+Policy: ${input.policy.template} / ${input.policy.mode} mode
+
+Respond ONLY with valid JSON (no markdown, no fences):
+{
+  "riskSummary": "<2-3 sentence risk assessment>",
+  "primaryConcern": "<1 sentence, most important concern>"
+}`;
+}
+
+export function buildPreSigningAssistPrompt(input: AiAnalysisInput): string {
+  return `You are helping an operator decide whether to override a WARN verdict in Aegis RPC.
+The deterministic policy flagged this transaction. Give specific, factual information.
+Do not recommend to override or not override — just explain the facts accurately.
+
+Transaction: ${input.intent.decodedFunction ?? "unknown"} to ${input.intent.to}
+Reason flagged: ${input.reasonCode}
+Signals that triggered WARN:
+${input.signals.filter(s => s.status !== "OK").map(s => `- ${s.adapter}: ${s.message}`).join("\n")}
+Policy limits: maxSingleAgentActionUsd=${input.policy.limits.maxSingleAgentActionUsd ?? "none"}
+
+Respond ONLY with valid JSON (no markdown, no fences):
+{
+  "preSigningAssist": "<2-4 sentences: what was specifically flagged, what the actual data shows, what to consider>"
+}`;
+}
+```
+
+### memoService.ts — Orchestrator
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+import * as prompts from "./prompts";
+import * as fallbacks from "./fallbacks";
+
+const client = new Anthropic(); // reads ANTHROPIC_API_KEY from env
+
+export async function runAiAnalysis(input: AiAnalysisInput): Promise {
+  const results: Partial = {
+    requestId: input.requestId,
+    usedFallback: false,
+    generatedAt: new Date().toISOString(),
+    confidence: "high",
+  };
+
+  // Role 1: Unknown selector (if needed)
+  if (input.needsUnknownSelectorAnalysis) {
+    const r = await callClaudeJson(
+      prompts.buildUnknownSelectorPrompt(input)
+    );
+    if (r) {
+      results.unknownSelectorGuess = r.guess;
+      results.unknownSelectorConfidence = r.confidence as AiAnalysisOutput["unknownSelectorConfidence"];
+    }
+  }
+
+  // Role 2: WARN synthesis (if multiple signals)
+  if (input.needsWarnSynthesis) {
+    const r = await callClaudeJson(
+      prompts.buildWarnSynthesisPrompt(input)
+    );
+    if (r) {
+      results.riskSummary = r.riskSummary;
+      results.primaryConcern = r.primaryConcern;
+    } else {
+      results.riskSummary = fallbacks.getFallbackRiskSummary(input.reasonCode);
+      results.usedFallback = true;
+    }
+  }
+
+  // Role 3: Memo (always)
+  const memoResult = await callClaudeJson(prompts.buildMemoPrompt(input));
+  results.memo = memoResult?.memo ?? fallbacks.getFallbackMemo(input.reasonCode, input.intent);
+  if (!memoResult) results.usedFallback = true;
+
+  // Role 4: Pre-signing assist (only for WARN)
+  if (input.verdict === "WARN") {
+    const r = await callClaudeJson(prompts.buildPreSigningAssistPrompt(input));
+    results.preSigningAssist = r?.preSigningAssist;
+  }
+
+  return results as AiAnalysisOutput;
+}
+
+async function callClaudeJson(prompt: string): Promise {
+  try {
+    const msg = await client.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 512,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = msg.content[0].type === "text" ? msg.content[0].text : null;
+    if (!text) return null;
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleaned) as T;
+  } catch {
+    return null; // Fallback will be used by caller
+  }
+}
+```
+
+### fallbacks.ts — Template Fallbacks (always available, no API key needed)
+
+```typescript
+export function getFallbackMemo(reasonCode: string, intent: TxIntent): string {
+  const fn = intent.decodedFunction ?? "unknown function";
+  const to = intent.to ?? "unknown address";
+
+  const templates: Record = {
+    UNLIMITED_APPROVAL_UNKNOWN_SPENDER:
+      `Aegis blocked this transaction because it requests unlimited ERC20 approval to an address not on your policy allowlist. Unlimited approvals give permanent token access to the spender. Verify the spender address before proceeding.`,
+    STALE_PRICE_FEED:
+      `Aegis blocked this transaction because the Chainlink ETH/USD price feed data is older than your policy's freshness limit. High-value actions are blocked until fresh price data is available to prevent execution under stale context.`,
+    EXCEEDS_USD_LIMIT:
+      `Aegis blocked this transaction because the estimated USD value exceeds your policy's per-action limit. Review your policy limits or get operator approval if this amount is intentional.`,
+    SIMULATION_REVERT:
+      `Aegis flagged this transaction because a simulation of ${fn} to ${to} reverted. This may indicate a contract error, insufficient balance, or state mismatch. Review before broadcasting.`,
+    UNKNOWN_FUNCTION_SELECTOR:
+      `Aegis flagged this transaction because the function selector is not recognized. The calldata could not be parsed into a known function. Manual review recommended before proceeding.`,
+    ALL_CHECKS_PASSED:
+      `This transaction passed all Aegis policy checks. The action is within defined limits, the price feed is fresh, and all addresses are within policy.`,
+  };
+
+  return templates[reasonCode] ?? `Aegis returned verdict with reason: ${reasonCode}. Review the adapter signals for details.`;
+}
+
+export function getFallbackRiskSummary(reasonCode: string): string {
+  const summaries: Record = {
+    STALE_PRICE_FEED: "Multiple signals flagged: price feed staleness combined with high-value action creates elevated execution risk.",
+    SIMULATION_REVERT: "Transaction simulation reverted. Combined with other signals, this indicates execution risk.",
+    UNKNOWN_FUNCTION_SELECTOR: "Unrecognized calldata combined with other signals requires manual review.",
+  };
+  return summaries[reasonCode] ?? "Multiple risk signals detected. Review each adapter signal individually.";
+}
+```
+
+### Async Pipeline Design
+
+```
+POST /api/preflight
+  [1] Decode tx intent                              ~5ms
+  [2] Load policy                                   ~10ms
+  [3] Run adapters in parallel                      ~500–2000ms
+  [4] Evaluate policy → verdict                     ~1ms
+  [5] INSERT aegis_event (memo: null)               ~50ms
+  [6] ← RETURN RESPONSE TO CLIENT                  ~600–2200ms total
+       (verdict is known; client has requestId)
+  ↓ (background, non-blocking)
+  [7] runAiAnalysis(input)                          ~1000–3000ms
+  [8] UPDATE aegis_event SET ai_memo, ai_analysis   ~30ms
+
+Client polls GET /api/ai-analyze?requestId=X for memo.
+VerdictCard polls every 2s until memoStatus === "ready".
+```
+
+### AI Security Constraints
+
+| Constraint | Implementation |
+|---|---|
+| AI never decides SAFE/WARN/BLOCK | Verdict computed before AI is called |
+| AI output never modifies verdict | Verdict is immutable after `finalizeVerdict()` |
+| AI never delays response | Fires after response is returned |
+| Prompt injection protection | Input is JSON-serialized, not string-interpolated from user-controlled fields |
+| API key never exposed client-side | All Claude calls are server-side only |
+| Fallback always works | Every role has a deterministic template fallback |
+
+---
+
+## 15. Smart Contract Architecture
+
+> **Complete redesign.** v3 said "Decision: CUT for MVP." That was wrong. At a Web3 conference hackathon, "What's on-chain?" is the first technical question. `AegisPolicyRegistry.sol` answers it: policy commitments are on-chain, verifiable on the explorer, timestamped before any transaction was screened. That's a qualitatively different trust model from a centralized API.
+
+### Why Contracts Matter
+
+**Auditability:** "This BLOCK verdict was produced by policy hash `0xabc123`, registered on-chain at block 12345, before the transaction at block 12350." You can verify this on the explorer.
+
+**Chainlink proof on-chain:** `ChainlinkFeedConsumer.sol` shows the adapter pattern in Solidity — same logic as the TypeScript adapter, deployed and verifiable.
+
+**Web3 completeness:** Judges at SEABW 2026 are builders. They'll look for deployed addresses.
+
+### Contract Priority Stack
+
+| Contract | Priority | Est. Lines | Est. Time | Purpose |
+|---|---|---|---|---|
+| `AegisPolicyRegistry.sol` | **MUST** | ~80 | 45min | Policy hash store + events |
+| `ChainlinkFeedConsumer.sol` | **MUST** | ~60 | 30min | On-chain AggregatorV3 reader, base for use-case contracts |
+| `DemoERC20.sol` | **SHOULD** | ~35 | 15min | Real deployed token for approval demo |
+| `DemoSpender.sol` | **SHOULD** | ~20 | 10min | Real unknown spender for BLOCK demo |
+| `AgentUseCasePolicyApp.sol` | **STRETCH** | ~100 | 60min | Agent policy enforcement on-chain |
+| `DeFiUseCasePolicyApp.sol` | **STRETCH** | ~80 | 60min | Swap deviation guard |
+| `RWAUseCasePolicyApp.sol` | **STRETCH** | ~70 | 60min | NAV-sensitive policy |
+
+### Interfaces
+
+```solidity
+// src/interfaces/IAggregatorV3.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface IAggregatorV3 {
+    function decimals() external view returns (uint8);
+    function description() external view returns (string memory);
+    function latestRoundData() external view returns (
+        uint80 roundId,
+        int256 answer,
+        uint256 startedAt,
+        uint256 updatedAt,
+        uint80 answeredInRound
+    );
+}
+```
+
+```solidity
+// src/interfaces/IAegisPolicyRegistry.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface IAegisPolicyRegistry {
+    function registerPolicy(bytes32 policyId, bytes32 policyHash, string calldata metadataURI) external;
+    function updatePolicy(bytes32 policyId, bytes32 newHash, string calldata metadataURI) external;
+    function getPolicy(bytes32 policyId) external view returns (
+        address owner, bytes32 policyHash, string memory metadataURI, uint256 updatedAt, bool active
+    );
+    function getPolicyHash(bytes32 policyId) external view returns (bytes32);
+    function verifyHash(bytes32 policyId, bytes32 hash) external view returns (bool);
+}
+```
+
+### Contract 1: AegisPolicyRegistry.sol (MUST)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "./interfaces/IAegisPolicyRegistry.sol";
+
+/// @title AegisPolicyRegistry
+/// @notice On-chain store for Aegis policy commitments.
+/// @dev policyHash = keccak256(abi.encodePacked(JSON.stringify(policy config)))
+///      Backend reads this hash to prove a policy configuration existed
+///      on-chain before a transaction was screened against it.
+contract AegisPolicyRegistry is IAegisPolicyRegistry {
+
+    struct PolicyRecord {
+        address owner;
+        bytes32 policyHash;
+        string  metadataURI;   // IPFS or off-chain doc link
+        uint256 updatedAt;
+        bool    active;
+    }
+
+    mapping(bytes32 => PolicyRecord) public policies;
+
+    event PolicyRegistered(
+        bytes32 indexed policyId,
+        address indexed owner,
+        bytes32 policyHash,
+        string  metadataURI,
+        uint256 timestamp
+    );
+
+    event PolicyUpdated(
+        bytes32 indexed policyId,
+        bytes32 oldHash,
+        bytes32 newHash,
+        string  metadataURI,
+        uint256 timestamp
+    );
+
+    event PolicyDeactivated(bytes32 indexed policyId, uint256 timestamp);
+
+    error PolicyAlreadyExists(bytes32 policyId);
+    error PolicyNotFound(bytes32 policyId);
+    error NotPolicyOwner(bytes32 policyId, address caller);
+    error PolicyNotActive(bytes32 policyId);
+
+    function registerPolicy(
+        bytes32 policyId,
+        bytes32 policyHash,
+        string calldata metadataURI
+    ) external {
+        if (policies[policyId].owner != address(0)) revert PolicyAlreadyExists(policyId);
+        policies[policyId] = PolicyRecord({
+            owner: msg.sender, policyHash: policyHash,
+            metadataURI: metadataURI, updatedAt: block.timestamp, active: true
+        });
+        emit PolicyRegistered(policyId, msg.sender, policyHash, metadataURI, block.timestamp);
+    }
+
+    function updatePolicy(
+        bytes32 policyId,
+        bytes32 newHash,
+        string calldata metadataURI
+    ) external {
+        PolicyRecord storage r = policies[policyId];
+        if (r.owner == address(0)) revert PolicyNotFound(policyId);
+        if (r.owner != msg.sender) revert NotPolicyOwner(policyId, msg.sender);
+        bytes32 oldHash = r.policyHash;
+        r.policyHash = newHash;
+        r.metadataURI = metadataURI;
+        r.updatedAt = block.timestamp;
+        emit PolicyUpdated(policyId, oldHash, newHash, metadataURI, block.timestamp);
+    }
+
+    function deactivatePolicy(bytes32 policyId) external {
+        PolicyRecord storage r = policies[policyId];
+        if (r.owner != msg.sender) revert NotPolicyOwner(policyId, msg.sender);
+        r.active = false;
+        emit PolicyDeactivated(policyId, block.timestamp);
+    }
+
+    function getPolicy(bytes32 policyId) external view returns (
+        address owner, bytes32 policyHash, string memory metadataURI, uint256 updatedAt, bool active
+    ) {
+        PolicyRecord storage r = policies[policyId];
+        return (r.owner, r.policyHash, r.metadataURI, r.updatedAt, r.active);
+    }
+
+    function getPolicyHash(bytes32 policyId) external view returns (bytes32) {
+        if (!policies[policyId].active) revert PolicyNotActive(policyId);
+        return policies[policyId].policyHash;
+    }
+
+    function verifyHash(bytes32 policyId, bytes32 hash) external view returns (bool) {
+        return policies[policyId].policyHash == hash && policies[policyId].active;
+    }
+}
+```
+
+### Contract 2: ChainlinkFeedConsumer.sol (MUST)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "./interfaces/IAggregatorV3.sol";
+
+/// @title ChainlinkFeedConsumer
+/// @notice Base contract for reading Chainlink AggregatorV3 feeds.
+/// @dev Normalizes any decimals feed to E8 (8 decimal places).
+///      Inherited by AgentUseCasePolicyApp, DeFiUseCasePolicyApp, RWAUseCasePolicyApp.
+///      Mirrors the TypeScript ChainlinkPriceAdapter logic.
+contract ChainlinkFeedConsumer {
+
+    error InvalidPrice(address feed, int256 answer);
+    error StalePrice(address feed, uint256 age, uint256 maxAge);
+
+    struct PriceData {
+        uint256 priceE8;
+        uint256 updatedAt;
+        uint8   decimals;
+        uint256 ageSeconds;
+    }
+
+    /// @notice Read a price feed and return normalized E8 price.
+    function readPriceE8(
+        address feed,
+        uint256 maxAgeSeconds
+    ) public view returns (PriceData memory data) {
+        (, int256 answer, , uint256 updatedAt, ) = IAggregatorV3(feed).latestRoundData();
+
+        if (answer <= 0) revert InvalidPrice(feed, answer);
+
+        uint256 age = block.timestamp - updatedAt;
+        if (age > maxAgeSeconds) revert StalePrice(feed, age, maxAgeSeconds);
+
+        uint8  dec = IAggregatorV3(feed).decimals();
+        uint256 raw = uint256(answer);
+
+        uint256 priceE8;
+        if      (dec == 8) { priceE8 = raw; }
+        else if (dec >  8) { priceE8 = raw / (10 ** (dec - 8)); }
+        else               { priceE8 = raw * (10 ** (8 - dec)); }
+
+        return PriceData({ priceE8: priceE8, updatedAt: updatedAt, decimals: dec, ageSeconds: age });
+    }
+
+    /// @notice Convert wei to USD value (E8 format).
+    function weiToUsdE8(uint256 valueWei, uint256 ethUsdE8) public pure returns (uint256) {
+        return (valueWei * ethUsdE8) / 1e18;
+    }
+}
+```
+
+### Contract 3: DemoERC20.sol (SHOULD)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+/// @title DemoERC20
+/// @notice Mintable ERC20 for Aegis hackathon demo.
+/// @dev Used in approve(DemoSpender, MaxUint256) → BLOCK demo scenario.
+contract DemoERC20 {
+    string public name     = "Aegis Demo Token";
+    string public symbol   = "AEGIS";
+    uint8  public decimals = 18;
+    uint256 public totalSupply;
+
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    constructor() { _mint(msg.sender, 1_000_000 * 1e18); }
+
+    function transfer(address to, uint256 amount) external returns (bool) {
+        balanceOf[msg.sender] -= amount; balanceOf[to] += amount;
+        emit Transfer(msg.sender, to, amount); return true;
+    }
+
+    function approve(address spender, uint256 amount) external returns (bool) {
+        allowance[msg.sender][spender] = amount;
+        emit Approval(msg.sender, spender, amount); return true;
+    }
+
+    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+        allowance[from][msg.sender] -= amount;
+        balanceOf[from] -= amount; balanceOf[to] += amount;
+        emit Transfer(from, to, amount); return true;
+    }
+
+    function mint(address to, uint256 amount) external { _mint(to, amount); }
+
+    function _mint(address to, uint256 amount) internal {
+        totalSupply += amount; balanceOf[to] += amount;
+        emit Transfer(address(0), to, amount);
+    }
+}
+```
+
+### Contract 4: DemoSpender.sol (SHOULD)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+/// @title DemoSpender
+/// @notice Unknown spender contract for Aegis approval-block demo.
+/// @dev This contract is deployed to a non-allowlisted address.
+///      When a user tries approve(DemoSpender, MaxUint256), Aegis BLOCKs it
+///      because DemoSpender is not on the policy spender allowlist.
+///      This contract intentionally has minimal logic — it exists to be a
+///      realistic-looking contract address for the demo.
+contract DemoSpender {
+    address public immutable token;
+    mapping(address => uint256) public pulled;
+    event TokensPulled(address indexed from, uint256 amount);
+
+    constructor(address _token) { token = _token; }
+
+    /// @notice In the demo, Aegis blocks approve() before this is ever called.
+    function pullTokens(address from, uint256 amount) external {
+        pulled[from] += amount;
+        emit TokensPulled(from, amount);
+    }
+}
+```
+
+### Contract 5: AgentUseCasePolicyApp.sol (STRETCH)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "./ChainlinkFeedConsumer.sol";
+
+/// @title AgentUseCasePolicyApp
+/// @notice On-chain agent policy enforcement: verify agent, check max USD, verify target.
+/// @dev Mirrors the TypeScript agent policy template. Backend can call checkNativeTransfer
+///      to verify the same policy exists on-chain.
+contract AgentUseCasePolicyApp is ChainlinkFeedConsumer {
+
+    struct AgentPolicy {
+        bool    active;
+        uint256 maxTxUsdE8;
+        uint256 maxAgeSeconds;
+        address ethUsdFeed;
+    }
+
+    mapping(address => AgentPolicy) public agentPolicies;
+    mapping(address => bool)        public approvedTargets;
+    mapping(bytes4  => bool)        public approvedSelectors;
+
+    event AgentPolicySet(address indexed agent, uint256 maxTxUsdE8);
+
+    error NoAgentPolicy(address agent);
+    error TargetNotApproved(address target);
+    error SelectorNotApproved(bytes4 selector);
+    error ExceedsPerActionLimit(uint256 usdE8, uint256 limitE8);
+
+    function setAgentPolicy(
+        address agent, uint256 maxTxUsdE8, uint256 maxAgeSeconds, address ethUsdFeed
+    ) external {
+        agentPolicies[agent] = AgentPolicy({
+            active: true, maxTxUsdE8: maxTxUsdE8, maxAgeSeconds: maxAgeSeconds, ethUsdFeed: ethUsdFeed
+        });
+        emit AgentPolicySet(agent, maxTxUsdE8);
+    }
+
+    function setApprovedTarget(address target, bool approved) external { approvedTargets[target] = approved; }
+    function setApprovedSelector(bytes4 selector, bool approved) external { approvedSelectors[selector] = approved; }
+
+    function checkNativeTransfer(address agent, address target, uint256 valueWei)
+        external view returns (bool ok, uint256 usdValueE8)
+    {
+        AgentPolicy memory policy = agentPolicies[agent];
+        if (!policy.active) revert NoAgentPolicy(agent);
+        if (!approvedTargets[target]) revert TargetNotApproved(target);
+        PriceData memory price = readPriceE8(policy.ethUsdFeed, policy.maxAgeSeconds);
+        usdValueE8 = weiToUsdE8(valueWei, price.priceE8);
+        if (usdValueE8 > policy.maxTxUsdE8) revert ExceedsPerActionLimit(usdValueE8, policy.maxTxUsdE8);
+        return (true, usdValueE8);
+    }
+}
+```
+
+### Contract 6: DeFiUseCasePolicyApp.sol (STRETCH)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "./ChainlinkFeedConsumer.sol";
+
+/// @title DeFiUseCasePolicyApp
+/// @notice Swap deviation guard: verifies that a swap's implied price is within
+///         acceptable deviation from Chainlink reference prices.
+contract DeFiUseCasePolicyApp is ChainlinkFeedConsumer {
+
+    error DeviationTooHigh(uint256 deviationBps, uint256 maxBps);
+
+    function checkSwapDeviation(
+        address baseFeed,      // Chainlink feed for input token
+        address quoteFeed,     // Chainlink feed for output token
+        uint256 inputAmountE18,
+        uint256 outputAmountE18,
+        uint256 maxDeviationBps,
+        uint256 maxAgeSeconds
+    ) external view returns (bool ok, uint256 deviationBps) {
+        PriceData memory base  = readPriceE8(baseFeed,  maxAgeSeconds);
+        PriceData memory quote = readPriceE8(quoteFeed, maxAgeSeconds);
+
+        uint256 inputUsdE8  = (inputAmountE18  * base.priceE8)  / 1e18;
+        uint256 outputUsdE8 = (outputAmountE18 * quote.priceE8) / 1e18;
+
+        if (inputUsdE8 == 0) return (true, 0);
+
+        deviationBps = inputUsdE8 >= outputUsdE8
+            ? ((inputUsdE8  - outputUsdE8) * 10_000) / inputUsdE8
+            : ((outputUsdE8 - inputUsdE8)  * 10_000) / inputUsdE8;
+
+        if (deviationBps > maxDeviationBps) revert DeviationTooHigh(deviationBps, maxDeviationBps);
+        return (true, deviationBps);
+    }
+}
+```
+
+### Contract 7: RWAUseCasePolicyApp.sol (STRETCH)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "./ChainlinkFeedConsumer.sol";
+
+/// @title RWAUseCasePolicyApp
+/// @notice Price/NAV-sensitive policy for tokenized asset mint/redeem.
+contract RWAUseCasePolicyApp is ChainlinkFeedConsumer {
+
+    struct RwaPolicy {
+        address navFeed;
+        uint256 maxMintUsdE8;
+        uint256 maxRedeemUsdE8;
+        uint256 maxAgeSeconds;
+        bool    active;
+    }
+
+    mapping(bytes32 => RwaPolicy) public rwaPolicies;
+
+    error NoPolicyForAsset(bytes32 assetId);
+    error MintValueExceeded(uint256 usdE8, uint256 limitE8);
+    error RedeemValueExceeded(uint256 usdE8, uint256 limitE8);
+
+    function setRwaPolicy(
+        bytes32 assetId, address navFeed,
+        uint256 maxMintUsdE8, uint256 maxRedeemUsdE8, uint256 maxAgeSeconds
+    ) external {
+        rwaPolicies[assetId] = RwaPolicy({
+            navFeed: navFeed, maxMintUsdE8: maxMintUsdE8,
+            maxRedeemUsdE8: maxRedeemUsdE8, maxAgeSeconds: maxAgeSeconds, active: true
+        });
+    }
+
+    function checkMintValue(bytes32 assetId, uint256 unitAmountE18)
+        external view returns (bool ok, uint256 mintUsdE8)
+    {
+        RwaPolicy memory policy = rwaPolicies[assetId];
+        if (!policy.active) revert NoPolicyForAsset(assetId);
+        PriceData memory price = readPriceE8(policy.navFeed, policy.maxAgeSeconds);
+        mintUsdE8 = (unitAmountE18 * price.priceE8) / 1e18;
+        if (mintUsdE8 > policy.maxMintUsdE8) revert MintValueExceeded(mintUsdE8, policy.maxMintUsdE8);
+        return (true, mintUsdE8);
+    }
+
+    function checkRedeemValue(bytes32 assetId, uint256 unitAmountE18)
+        external view returns (bool ok, uint256 redeemUsdE8)
+    {
+        RwaPolicy memory policy = rwaPolicies[assetId];
+        if (!policy.active) revert NoPolicyForAsset(assetId);
+        PriceData memory price = readPriceE8(policy.navFeed, policy.maxAgeSeconds);
+        redeemUsdE8 = (unitAmountE18 * price.priceE8) / 1e18;
+        if (redeemUsdE8 > policy.maxRedeemUsdE8) revert RedeemValueExceeded(redeemUsdE8, policy.maxRedeemUsdE8);
+        return (true, redeemUsdE8);
+    }
+}
+```
+
+### Deployment Script: DeployBaseSepolia.s.sol
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "forge-std/Script.sol";
+import "../src/registry/AegisPolicyRegistry.sol";
+import "../src/adapters/ChainlinkFeedConsumer.sol";
+import "../src/demo/DemoERC20.sol";
+import "../src/demo/DemoSpender.sol";
+
+contract DeployBaseSepolia is Script {
+    function run() external {
+        uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+
+        vm.startBroadcast(deployerKey);
+
+        // 1. Registry
+        AegisPolicyRegistry registry = new AegisPolicyRegistry();
+        console.log("AegisPolicyRegistry:", address(registry));
+
+        // 2. Demo token + spender
+        DemoERC20   token   = new DemoERC20();
+        DemoSpender spender = new DemoSpender(address(token));
+        console.log("DemoERC20:", address(token));
+        console.log("DemoSpender:", address(spender));
+
+        // 3. Register demo policies on-chain
+        bytes32 walletPolicyId   = keccak256("default-wallet-policy");
+        bytes32 walletPolicyHash = keccak256(abi.encodePacked(
+            '{"id":"default-wallet-policy","template":"wallet","mode":"enforce"}'
+        ));
+        registry.registerPolicy(walletPolicyId, walletPolicyHash, "ipfs://aegis-wallet-policy-v1");
+        console.log("Registered default-wallet-policy on-chain");
+
+        bytes32 agentPolicyId   = keccak256("default-agent-policy");
+        bytes32 agentPolicyHash = keccak256(abi.encodePacked(
+            '{"id":"default-agent-policy","template":"agent","mode":"enforce","limits":{"maxSingleAgentActionUsd":500}}'
+        ));
+        registry.registerPolicy(agentPolicyId, agentPolicyHash, "ipfs://aegis-agent-policy-v1");
+        console.log("Registered default-agent-policy on-chain");
+
+        vm.stopBroadcast();
+
+        // Write deployments file
+        vm.writeFile("./deployments/base-sepolia.json", string(abi.encodePacked(
+            '{"chainId":84532,',
+            '"AegisPolicyRegistry":"', vm.toString(address(registry)), '",',
+            '"DemoERC20":"', vm.toString(address(token)), '",',
+            '"DemoSpender":"', vm.toString(address(spender)), '",',
+            '"walletPolicyId":"', vm.toString(walletPolicyId), '",',
+            '"agentPolicyId":"', vm.toString(agentPolicyId), '"}'
+        )));
+        console.log("Wrote ./deployments/base-sepolia.json");
+    }
+}
+```
+
+### Foundry Test: AegisPolicyRegistry.t.sol
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "forge-std/Test.sol";
+import "../src/registry/AegisPolicyRegistry.sol";
+
+contract AegisPolicyRegistryTest is Test {
+    AegisPolicyRegistry registry;
+    address owner = address(0xABCD);
+
+    function setUp() public { registry = new AegisPolicyRegistry(); }
+
+    function test_RegisterPolicy() public {
+        bytes32 id = keccak256("test"); bytes32 hash = keccak256("v1");
+        vm.prank(owner);
+        registry.registerPolicy(id, hash, "ipfs://test");
+        (address o, bytes32 h,,,bool active) = registry.getPolicy(id);
+        assertEq(o, owner); assertEq(h, hash); assertTrue(active);
+    }
+
+    function test_VerifyHash() public {
+        bytes32 id = keccak256("test"); bytes32 hash = keccak256("v1");
+        vm.prank(owner); registry.registerPolicy(id, hash, "ipfs://test");
+        assertTrue(registry.verifyHash(id, hash));
+        assertFalse(registry.verifyHash(id, bytes32(0)));
+    }
+
+    function test_UpdatePolicy() public {
+        bytes32 id = keccak256("test");
+        vm.prank(owner); registry.registerPolicy(id, keccak256("v1"), "ipfs://v1");
+        bytes32 newHash = keccak256("v2");
+        vm.prank(owner); registry.updatePolicy(id, newHash, "ipfs://v2");
+        (, bytes32 h,,,) = registry.getPolicy(id); assertEq(h, newHash);
+    }
+
+    function test_RevertDuplicateRegister() public {
+        bytes32 id = keccak256("test");
+        vm.prank(owner); registry.registerPolicy(id, keccak256("v1"), "ipfs://v1");
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(AegisPolicyRegistry.PolicyAlreadyExists.selector, id));
+        registry.registerPolicy(id, keccak256("v2"), "ipfs://v2");
+    }
+
+    function test_RevertUpdateIfNotOwner() public {
+        bytes32 id = keccak256("test");
+        vm.prank(owner); registry.registerPolicy(id, keccak256("v1"), "ipfs://v1");
+        vm.prank(address(0xDEAD));
+        vm.expectRevert();
+        registry.updatePolicy(id, keccak256("v2"), "ipfs://v2");
+    }
+}
+```
+
+### Foundry Test: ChainlinkFeedConsumer.t.sol
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "forge-std/Test.sol";
+import "../src/adapters/ChainlinkFeedConsumer.sol";
+import "../src/interfaces/IAggregatorV3.sol";
+
+contract MockFeed is IAggregatorV3 {
+    int256 public ans; uint256 public upd; uint8 public dec = 8;
+    constructor(int256 _a, uint256 _u) { ans = _a; upd = _u; }
+    function decimals() external view returns (uint8) { return dec; }
+    function description() external pure returns (string memory) { return "Mock/USD"; }
+    function latestRoundData() external view returns (uint80,int256,uint256,uint256,uint80) {
+        return (1, ans, block.timestamp, upd, 1);
+    }
+}
+
+contract ChainlinkFeedConsumerTest is Test {
+    ChainlinkFeedConsumer consumer;
+    function setUp() public { consumer = new ChainlinkFeedConsumer(); vm.warp(1_000_000); }
+
+    function test_ReadFreshPrice() public {
+        MockFeed feed = new MockFeed(2000_00000000, block.timestamp - 100);
+        ChainlinkFeedConsumer.PriceData memory d = consumer.readPriceE8(address(feed), 3600);
+        assertEq(d.priceE8, 2000_00000000); assertEq(d.ageSeconds, 100);
+    }
+
+    function test_RevertStaleFeed() public {
+        MockFeed feed = new MockFeed(2000_00000000, block.timestamp - 7200);
+        vm.expectRevert(); consumer.readPriceE8(address(feed), 3600);
+    }
+
+    function test_RevertInvalidPrice() public {
+        MockFeed feed = new MockFeed(-1, block.timestamp - 10);
+        vm.expectRevert(); consumer.readPriceE8(address(feed), 3600);
+    }
+
+    function test_WeiToUsdE8() public view {
+        assertEq(consumer.weiToUsdE8(1 ether, 2000_00000000), 2000_00000000);
+        assertEq(consumer.weiToUsdE8(0.5 ether, 2000_00000000), 1000_00000000);
+    }
+}
+```
+
+### foundry.toml
+
+```toml
+[profile.default]
+src    = "src"
+out    = "out"
+libs   = ["lib"]
+test   = "test"
+script = "script"
+solc   = "0.8.24"
+
+[rpc_endpoints]
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+
+[etherscan]
+base_sepolia = { key = "${BASESCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api" }
+```
+
+### Deployment Commands
+
+```bash
+# Setup Foundry
+curl -L https://foundry.paradigm.xyz | bash && foundryup
+cd contracts && forge install foundry-rs/forge-std
+
+# Run tests (MUST pass before deploy)
+forge test -vv
+
+# Dry run (no broadcast)
+forge script script/DeployBaseSepolia.s.sol --rpc-url $BASE_SEPOLIA_RPC_URL
+
+# Deploy + verify
+forge script script/DeployBaseSepolia.s.sol \
+  --rpc-url $BASE_SEPOLIA_RPC_URL \
+  --private-key $DEPLOYER_PRIVATE_KEY \
+  --broadcast \
+  --verify \
+  --etherscan-api-key $BASESCAN_API_KEY \
+  -vvv
+
+# Copy addresses to frontend
+cat deployments/base-sepolia.json
+# Paste into lib/chain/addresses.ts and .env.local
+```
+
+### Backend Integration: On-Chain Policy Hash Verification
+
+```typescript
+// lib/chain/policyVerifier.ts
+import { publicClient } from "./clients";
+import { aegisPolicyRegistryAbi } from "./abis";
+import { addresses } from "./addresses";
+import { keccak256, toBytes, toHex } from "viem";
+
+export async function getOnChainPolicyHash(policyId: string): Promise<`0x${string}` | null> {
+  try {
+    const policyIdBytes32 = toHex(keccak256(toBytes(policyId)), { size: 32 });
+    return await publicClient.readContract({
+      address: addresses.AEGIS_POLICY_REGISTRY,
+      abi: aegisPolicyRegistryAbi,
+      functionName: "getPolicyHash",
+      args: [policyIdBytes32],
+    }) as `0x${string}`;
+  } catch {
+    return null; // Registry not reachable or policy not found
+  }
+}
+
+export function computePolicyHash(policy: Pick): `0x${string}` {
+  const json = JSON.stringify({ id: policy.id, template: policy.template, mode: policy.mode, limits: policy.limits });
+  return keccak256(toBytes(json));
+}
+```
+
+---
+
+
+## 16. Docker & Local Development
+
+### Development goal
+
+Local development must let you run the web app, API routes, database, and contract tests without depending on Vercel. For a 24-hour hackathon, keep Docker simple. Do not containerize the Next.js app unless your machine has environment problems. Use Docker for Postgres only, then run `pnpm dev` directly.
+
+### Local topology
+
+```mermaid
+flowchart LR
+    DEV[Developer laptop / WSL] --> WEB[pnpm dev: Next.js]
+    WEB --> API[Next.js API Routes]
+    API --> DB[(Postgres via Docker)]
+    API --> BASE[Base Sepolia RPC]
+    API --> CL[Chainlink Feed]
+    API --> AI[AI Provider or Kiro/Hermes Bridge]
+    CONTRACTS[Foundry] --> BASE
+```
+
+### Minimal local commands
+
+```bash
+# Install dependencies
+pnpm install
+
+# Copy environment template
+cp .env.example .env.local
+
+# Start database only
+pnpm docker:up
+
+# Run migrations
+pnpm db:migrate
+
+# Start web/API dev server
+pnpm dev
+
+# Run API tests
+pnpm test
+
+# Run contracts
+cd contracts && forge test -vv
+```
+
+### docker-compose.yml
+
+```yaml
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aegis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis
+      POSTGRES_DB: aegis_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - aegis-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis -d aegis_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: aegis-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    profiles:
+      - optional
+
+volumes:
+  aegis-postgres-data:
+```
+
+### package.json scripts
+
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "docker:up": "docker compose up -d postgres",
+    "docker:down": "docker compose down",
+    "docker:reset": "docker compose down -v && docker compose up -d postgres",
+    "db:migrate": "tsx scripts/db/migrate.ts",
+    "db:seed": "tsx scripts/db/seed.ts",
+    "contracts:test": "cd contracts && forge test -vv",
+    "contracts:deploy:base-sepolia": "cd contracts && forge script script/DeployBaseSepolia.s.sol --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY --broadcast --verify --etherscan-api-key $BASESCAN_API_KEY -vvv"
+  }
+}
+```
+
+### .env.example
+
+```env
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_CHAIN_ID=84532
+NODE_ENV=development
+
+# RPC
+BASE_SEPOLIA_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
+NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
+UNDERLYING_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
+
+# Chainlink
+CHAINLINK_ETH_USD_FEED_BASE_SEPOLIA=0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1
+CHAINLINK_MAX_AGE_SECONDS=3600
+
+# Database, choose one
+DATABASE_URL=postgresql://aegis:aegis@localhost:5432/aegis_dev
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# AI memo layer, choose one
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+AEGIS_AI_PROVIDER=fallback
+
+# Hermes/Kiro local development only, optional
+KIRO_BRIDGE_BASE_URL=http://127.0.0.1:8787/v1
+KIRO_MODEL=kiro-current
+
+# Contracts
+DEPLOYER_PRIVATE_KEY=0x_TESTNET_ONLY_DO_NOT_COMMIT
+BASESCAN_API_KEY=your_key
+AEGIS_POLICY_REGISTRY=0x...
+CHAINLINK_FEED_CONSUMER=0x...
+DEMO_ERC20=0x...
+DEMO_SPENDER=0x...
+
+# Demo addresses
+DEMO_AGENT_ADDRESS=0x...
+DEMO_OPERATOR_ADDRESS=0x...
+DEMO_SAFE_RECIPIENT=0x...
+DEMO_UNKNOWN_SPENDER=0x...
+```
+
+### Local database migration script
+
+```ts
+// scripts/db/migrate.ts
+import { Client } from "pg";
+import fs from "node:fs";
+import path from "node:path";
+
+async function main() {
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  const sql = fs.readFileSync(path.join(process.cwd(), "scripts/db/schema.sql"), "utf8");
+  await client.query(sql);
+  await client.end();
+  console.log("Aegis database migrated");
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+```
+
+### What not to Dockerize in 24 hours
+
+| Component | Decision | Reason |
+|---|---|---|
+| Next.js app | Run locally or on Vercel | Faster iteration, fewer port/env bugs |
+| Foundry | Run directly in WSL | Easier access to wallet/env |
+| Kiro/Hermes | Keep outside app Docker | It is a development runtime, not user-facing infrastructure |
+| Private relay | Cut | Not needed to prove preflight screening |
+
+---
+
+## 17. Deployment Plan
+
+### Deployment target
+
+| Surface | Target | Why |
+|---|---|---|
+| Frontend + API | Vercel | Fast deploy, shareable URL for judges |
+| Smart contracts | Base Sepolia | Web3 proof, cheap, aligns with Base L2 thesis |
+| Database | Supabase or Vercel Postgres | Fast managed Postgres, dashboard-friendly |
+| AI memo | Server-side API route | Never expose keys to frontend |
+| Runtime agents | Local Hermes/Kiro | Development support only, not required for end users |
+
+### Vercel deployment
+
+```bash
+# From repo root
+pnpm install
+pnpm build
+
+# Install Vercel CLI if needed
+npm i -g vercel
+
+# First deploy
+vercel
+
+# Production deploy
+vercel --prod
+```
+
+### Required Vercel environment variables
+
+```env
+UNDERLYING_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
+BASE_SEPOLIA_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
+NEXT_PUBLIC_CHAIN_ID=84532
+CHAINLINK_ETH_USD_FEED_BASE_SEPOLIA=0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1
+CHAINLINK_MAX_AGE_SECONDS=3600
+DATABASE_URL=postgresql://...
+SUPABASE_URL=https://...
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+ANTHROPIC_API_KEY=...
+AEGIS_POLICY_REGISTRY=0x...
+DEMO_ERC20=0x...
+DEMO_SPENDER=0x...
+```
+
+### Vercel caveats
+
+| Risk | Fix |
+|---|---|
+| Serverless timeout during Kiro or AI call | Preflight returns deterministic verdict first, AI memo runs async or fallback |
+| Long-running polling from API route | Do not use route as worker, poll from frontend |
+| Private key in Vercel | Do not store user private keys, only deployer key locally for Foundry |
+| Cold start affects demo | Warm up `/api/events` and `/api/preflight` before judging |
+| Postgres connection exhaustion | Use Supabase client or pooled connection string |
+
+### Base Sepolia deployment
+
+```bash
+cd contracts
+forge install foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts
+forge test -vv
+
+forge script script/DeployBaseSepolia.s.sol \
+  --rpc-url $BASE_SEPOLIA_RPC_URL \
+  --private-key $DEPLOYER_PRIVATE_KEY \
+  --broadcast \
+  --verify \
+  --etherscan-api-key $BASESCAN_API_KEY \
+  -vvv
+```
+
+### Contract address registry
+
+Create:
+
+```json
+// contracts/deployments/base-sepolia.json
+{
+  "chainId": 84532,
+  "network": "base-sepolia",
+  "deployedAt": "2026-05-20T00:00:00Z",
+  "AegisPolicyRegistry": "0x...",
+  "ChainlinkFeedConsumer": "0x...",
+  "DemoERC20": "0x...",
+  "DemoSpender": "0x...",
+  "policies": {
+    "default-wallet-policy": "0x...policyHash",
+    "default-agent-policy": "0x...policyHash"
+  }
+}
+```
+
+Mirror into:
+
+```ts
+// lib/chain/addresses.ts
+export const addresses = {
+  chainId: 84532,
+  AEGIS_POLICY_REGISTRY: "0x..." as const,
+  CHAINLINK_FEED_CONSUMER: "0x..." as const,
+  DEMO_ERC20: "0x..." as const,
+  DEMO_SPENDER: "0x..." as const,
+  ETH_USD_FEED: process.env.CHAINLINK_ETH_USD_FEED_BASE_SEPOLIA as `0x${string}`,
+};
+```
+
+### Hermes/Kiro development runtime
+
+This runtime helps you build, but the deployed product must not depend on your laptop.
+
+```bash
+systemctl --user list-units --type=service | grep -Ei "kiro|hermes|gateway"
+systemctl --user restart kiro-openai-bridge.service
+systemctl --user restart hermes-gateway.service
+curl -s http://127.0.0.1:8787/health | jq
+```
+
+Expected development services:
+
+```text
+hermes-gateway.service        active running
+kiro-openai-bridge.service    active running
+```
+
+Do not enable:
+
+```text
+telegram-kiro-gateway.service
+```
+
+That bypasses Hermes and causes Telegram polling conflict.
+
+---
+
+## 18. 24-Hour Build Plan
+
+### Solo builder plan
+
+| Time | Task | Output | Risk | Fallback |
+|---|---|---|---|---|
+| 00:00-01:00 | Repo bootstrap | Next.js, Tailwind, shadcn, viem, zod, Foundry | Dependency friction | Use minimal CSS, no shadcn |
+| 01:00-02:30 | Core types and policy schema | `TxIntent`, `AegisPolicy`, `AdapterSignal`, `Verdict` | Overdesign | Keep only wallet + agent policy |
+| 02:30-04:00 | Transaction decoder | approve, transfer, native, unknown selector | ABI bugs | Use fixed demo calldata |
+| 04:00-05:30 | Adapter system | Chainlink, approval risk, allowlist, contract code | Feed issues | Health endpoint + fallback signal |
+| 05:30-06:30 | Policy engine | `evaluateTransaction`, `finalizeVerdict` | Rule confusion | Hardcode default policies |
+| 06:30-08:00 | API routes | `/api/rpc`, `/api/preflight`, `/api/events` | Raw tx parsing | Lead with preflight API |
+| 08:00-09:30 | Database | events and policies tables | Supabase setup | In-memory + JSON file fallback for demo |
+| 09:30-11:00 | Contracts | Registry, feed consumer, demo token/spender | Verification delay | Deploy without verify, add explorer links later |
+| 11:00-13:00 | Frontend demo pages | Agent and wallet pages | UI polish | One combined demo page |
+| 13:00-14:30 | Dashboard | timeline, signals, memo panel | DB data mismatch | Seed demo events |
+| 14:30-15:30 | AI memo | async memo + fallback | API key issue | Deterministic fallback templates |
+| 15:30-17:00 | Integration tests | curl flows and UI smoke test | Broken paths | Record known-good curl outputs |
+| 17:00-18:30 | Vercel deploy | live URL | env mistake | local video fallback |
+| 18:30-20:00 | Base Sepolia test | registry link and demo addresses | faucet delay | use pre-deployed existing addresses |
+| 20:00-21:30 | Demo script | exact clicks and talking points | narrative drift | read script literally |
+| 21:30-23:00 | README and pitch | setup, architecture, judge alignment | too long | keep README operational |
+| 23:00-24:00 | Recording and freeze | two-minute video + final deploy | last-minute bugs | do not add features |
+
+### Team of 3 plan
+
+| Role | Hours 0-6 | Hours 6-12 | Hours 12-18 | Hours 18-24 |
+|---|---|---|---|---|
+| Protocol/backend | engine, adapters, API | contracts, Base deploy | safe-send, tests | bugfix + logs |
+| Frontend/product | pages, components | dashboard, demo flows | polish, copy | pitch, recording |
+| AI/devops/QA | AI memo, DB, Docker | Vercel env, Supabase | e2e tests, scripts | fallback video, README |
+
+### Freeze rule
+
+At hour 18, stop new features. At hour 21, stop code changes unless they fix demo blockers. At hour 23, use recorded video as fallback.
+
+---
+
+## 19. Agent-Swarm Plan
+
+### Operating principle
+
+Hermes orchestrates. Kiro powers responses and coding. Claude/Cursor can review and implement. Every agent receives a scoped task, allowed files, acceptance criteria, and fallback.
+
+### Agent roles
+
+| Agent | Mission | Files owned | Acceptance criteria | Fallback |
+|---|---|---|---|---|
+| Orchestrator Agent | Keep scope aligned with demo and judging | `AGENTS.md`, `tasks/*`, `docs/*` | no feature drift, daily checklist | cut stretch scope |
+| Backend RPC Agent | Build gateway/API | `app/api/*`, `lib/rpc/*` | passthrough and preflight work | preflight-only demo |
+| Decoder Agent | Decode calldata | `lib/engine/transactionDecoder.ts` | approve MaxUint256 decoded | fixed demo decoder |
+| Policy Agent | Deterministic verdicts | `lib/engine/policyEngine.ts` | SAFE/WARN/BLOCK tested | hardcoded default policies |
+| Adapter Agent | Chainlink and risk signals | `lib/adapters/*` | feed, approval, allowlist, code signals | mock only adapter health, but not core verdict |
+| AI Agent | Memos and assist | `lib/ai/*` | memo generated or fallback used | template fallback |
+| Smart Contract Agent | Base Sepolia artifacts | `contracts/*` | registry deployed, demo token deployed | local forge tests + planned addresses |
+| Frontend Agent | Demo UI | `app/*`, `components/*` | judge can click all flows | one-page demo |
+| QA Agent | Tests and scripts | `tests/*`, curl scripts | all five scenarios pass | manual checklist |
+| Pitch Agent | Narrative and README | `README.md`, `docs/pitch.md` | clear 2-minute pitch | use PDF and demo script |
+
+### Agent task template
+
+```md
+# Task: <name>
+
+Context:
+Aegis RPC screens transactions before broadcast. AI explains. Policy decides.
+
+Allowed files:
+- ...
+
+Do not edit:
+- ...
+
+Acceptance:
+- ...
+
+Commands to run:
+- ...
+
+Fallback:
+- ...
+```
+
+---
+
+## 20. Testing Plan
+
+### Unit tests
+
+| Test | Expected |
+|---|---|
+| decode native transfer | `decodedFunction = native_transfer` |
+| decode ERC20 approve | spender and amount extracted |
+| detect MaxUint256 | `isUnlimited = true` |
+| unknown selector | `isUnknownSelector = true` |
+| approval risk adapter | BLOCK for unknown MaxUint256 spender |
+| Chainlink adapter | OK for fresh positive feed |
+| stale feed signal | BLOCK or WARN depending policy |
+| finalize verdict | hard BLOCK wins in enforce mode |
+| warn mode | BLOCK signal becomes WARN |
+| AI fallback | memo returned without provider |
+
+### API tests
+
+```bash
+# passthrough
+curl -s -X POST http://localhost:3000/api/rpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' | jq
+
+# approval block
+curl -s -X POST http://localhost:3000/api/preflight \
+  -H "Content-Type: application/json" \
+  -d '{
+    "chainId":84532,
+    "from":"0x0000000000000000000000000000000000000001",
+    "to":"0x0000000000000000000000000000000000000002",
+    "valueWei":"0",
+    "data":"0x095ea7b30000000000000000000000000000000000000000000000000000000000000003ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "policyId":"default-wallet-policy"
+  }' | jq
+
+# events
+curl -s http://localhost:3000/api/events | jq
+```
+
+### Contract tests
+
+```bash
+cd contracts
+forge test -vv
+```
+
+Must include:
+
+```text
+AegisPolicyRegistry.t.sol
+- registerPolicy stores owner/hash/metadata
+- duplicate register reverts
+- update by owner works
+- update by non-owner reverts
+- deactivate prevents getPolicyHash
+- verifyHash returns true/false correctly
+
+ChainlinkFeedConsumer.t.sol
+- normalizes decimals to E8
+- rejects zero/negative price
+- rejects stale price
+- converts wei to USD E8
+
+DemoERC20.t.sol
+- approve emits allowance
+- spender can transferFrom after approval
+```
+
+### Demo acceptance tests
+
+| Scenario | Expected screen |
+|---|---|
+| `eth_blockNumber` passthrough | block result returned |
+| safe low-value preflight | SAFE, green card |
+| `$5K` agent action with `$500` policy cap | BLOCK, Chainlink signal visible |
+| policy mode enforce to warn | same action becomes WARN |
+| WARN override | tx hash or simulated forwarded state |
+| unlimited approval | BLOCK, approval-risk signal visible |
+| dashboard | all events visible with memo/status |
+| contract registry | BaseScan link opens deployed registry |
+
+---
+
+## 21. Demo Script
+
+### Opening, 15 seconds
+
+"Every Web3 transaction passes through RPC, but normal RPC forwards blindly. Aegis turns that path into a programmable checkpoint. It screens high-risk actions before broadcast and returns SAFE, WARN, or BLOCK."
+
+### Demo 1, RPC passthrough
+
+Click: `/demo/agent` then `Test RPC passthrough`.
+
+Say: "Read-only calls stay fast. Aegis is real middleware, not just a dashboard."
+
+Expected: `eth_blockNumber` and `eth_getBalance` return Base Sepolia data.
+
+Judge takeaway: completeness and infrastructure fit.
+
+### Demo 2, agent policy BLOCK
+
+Click: `$5,000 Agent Swap` with policy cap `$500`.
+
+Say: "This is the agentic economy problem. An agent wants to move value outside its budget. Aegis reads live ETH/USD through Chainlink, computes USD notional, and blocks before broadcast."
+
+Expected: BLOCK, reason `EXCEEDS_USD_LIMIT`, Chainlink signal shows price, age, valueUsd.
+
+Judge takeaway: problem-solving with live external data.
+
+### Demo 3, mode switch WARN
+
+Click: policy mode `warn`, rerun same action.
+
+Say: "Operators can tune posture without redeploying. Same engine, same policy, different mode. Now this is a WARN with an override path."
+
+Expected: WARN, PreSigningAssist explains what to consider.
+
+Judge takeaway: platform behavior, not one-off rule.
+
+### Demo 4, wallet drainer approval
+
+Click: `Unlimited approval` scenario.
+
+Say: "This is the most relatable risk. Aegis decodes ERC20 approve and blocks MaxUint256 approval to an unknown spender."
+
+Expected: BLOCK, decoded function `approve(address,uint256)`, approval-risk signal.
+
+Judge takeaway: practical, familiar security value.
+
+### Demo 5, dashboard
+
+Open `/dashboard`.
+
+Say: "The OpsRisk dashboard shows every decision, decoded intent, adapter signals, AI memo, broadcast status, and on-chain policy hash. This is the seed of the paid product."
+
+Expected: timeline with all events.
+
+### Closing, 20 seconds
+
+"Existing tools either sit inside a wallet or after the chain executes. Aegis sits between an organization's signer and the chain, the last place automated transactions can be stopped before they cost money. We start as a Security RPC plus preflight API, expand into OpsRisk Cloud, and upsell managed execution infrastructure."
+
+---
+
+## 22. Competitive Analysis
+
+| Competitor/category | What they do | What not to copy | Aegis differentiation | Judge objection | Best answer |
+|---|---|---|---|---|---|
+| Infura, Alchemy, Ankr, QuickNode | RPC access and node infrastructure | Compete on raw node uptime | Add policy screening on top | "Why not just use Alchemy?" | Aegis wraps RPC providers with pre-broadcast policy. |
+| Flashbots Protect | private routing, MEV protection | claim MEV replacement | decide whether tx should be sent at all | "Is this Flashbots?" | Flashbots protects routing; Aegis enforces policy. |
+| Blowfish, Wallet Guard | wallet transaction warnings | consumer-wallet-only framing | org/agent/backend seam | "Blowfish already does this" | Blowfish is wallet seam; Aegis is org RPC/preflight seam with on-chain policy hash. |
+| GoPlus | security data APIs | generic risk score only | full verdict engine and audit trail | "Why not use GoPlus?" | GoPlus can become an adapter. Aegis is the policy engine. |
+| Tenderly | simulation, alerts, debugging | debugger positioning | pre-broadcast policy gate + dashboard | "Tenderly simulates txs" | Tenderly is simulation infra; Aegis turns signals into policy enforcement. |
+| OpenZeppelin Defender | relayers, monitor, admin ops | SDK-heavy admin stack | simple preflight API and JSON policy | "Defender has monitoring" | Aegis is lighter and focused on screening before broadcast. |
+| Forta, Hypernative | threat detection and monitoring | claim they are only post-broadcast | preflight checkpoint | "They detect threats" | Aegis can use threat intel as adapters, but final seam is before send. |
+| Chainlink Data Feeds | oracle price data | make Chainlink the product | Chainlink is one adapter signal | "Is this a Chainlink demo?" | Chainlink provides freshness/price context. Aegis is policy/RPC infrastructure. |
+| Wallet warnings | UI-level warnings | another warning popup | infrastructure-level policy | "Users can bypass" | Target buyers control signers/RPC: agents, keepers, treasuries, wallets. |
+
+---
+
+## 23. Business & Scalability
+
+### Business thesis
+
+Aegis sells infrastructure software for teams that must prove an automated or high-value transaction was checked before it reached the chain.
+
+### Customer segments
+
+| Segment | Buyer | User | Why they pay |
+|---|---|---|---|
+| AI agent platforms | CTO/devtools lead | agent developer | safe autonomous execution boundaries |
+| DeFi protocols | protocol/infra lead | keeper operators | reusable risk gates and audit trail |
+| RWA/treasury teams | COO/compliance/ops | treasury operators | policy enforcement before value movement |
+| Wallet vendors | product/security lead | wallet users | pre-signing safety without building engine |
+| Custody/institutions | security/ops | internal operators | custom policy, logs, approval workflow |
+
+### Pricing model
+
+| Tier | Price | Includes |
+|---|---:|---|
+| Developer | Free to $49/mo | 1 project, 10k preflights, default policies |
+| Team | $499/mo to $2k/mo | team workspace, webhooks, dashboards, policy templates |
+| Enterprise | $5k/mo to $50k/mo | private gateway, SLA, audit exports, custom adapters |
+| Usage | $0.10 to $1 per 1k preflights | scales with agent/wallet volume |
+| Managed gateway | custom | relay, queues, approval workflow, private deployment |
+
+### Roadmap
+
+| Phase | Product | Proof required |
+|---|---|---|
+| 0 Hackathon | wrapped RPC + preflight API | live demo, deployed contracts |
+| 1 Security RPC SaaS | hosted endpoints, API keys, policies | 10-minute integration |
+| 2 OpsRisk Cloud | alerts, incidents, audit, approvals | daily-use dashboard |
+| 3 Managed Gateway | relays, queues, operator approvals | enterprise pilot |
+| 4 Security RPC IaaS | dedicated nodes, simulation workers, SLA | latency and reliability metrics |
+| 5 Adapter Marketplace | threat intel, PoR, compliance feeds | third-party adapter integrations |
+
+### Moat
+
+```text
+Policy templates + adapter interface + historical decisions + integrations + audit trust.
+```
+
+The on-chain policy registry is an early trust primitive. The real moat is distribution into agent platforms, DeFi keeper stacks, wallets, and institutional backends.
+
+### GTM
+
+1. Start with Base Sepolia builders and agent hackathon teams.
+2. Publish open-source SDK and hosted demo endpoint.
+3. Partner with wallets/agent frameworks for preflight integration.
+4. Sell team dashboard to protocols that already run keepers.
+5. Upsell managed execution and private deployments to institutions.
+
+---
+
+## 24. README Draft
+
+```md
+# Aegis RPC
+
+Aegis RPC screens Web3 transactions before broadcast.
+
+It is a programmable preflight API and JSON-RPC-compatible gateway for wallets, AI agents, DeFi backends, RWA operators, treasuries, and keepers. Aegis decodes intent, runs deterministic policy checks, reads adapter signals, and returns SAFE, WARN, or BLOCK before a transaction hits the chain.
+
+AI explains. Policy decides.
+
+## Demo
+
+- Live app: <VERCEL_URL>
+- Base Sepolia registry: <BASESCAN_LINK>
+- Demo video: <VIDEO_LINK>
+
+## Features
+
+- `/api/rpc` JSON-RPC passthrough
+- `/api/preflight` transaction screening
+- ERC20 approve decoder
+- MaxUint256 approval blocker
+- Chainlink ETH/USD adapter
+- Policy modes: observe, warn, enforce
+- AI memo and PreSigningAssist
+- Supabase audit log
+- OpsRisk dashboard
+- Base Sepolia policy registry
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[Wallet / Agent / Backend] --> B[Aegis API]
+    B --> C[Decoder]
+    C --> D[Adapters]
+    D --> E[Policy Engine]
+    E --> F{SAFE / WARN / BLOCK}
+    F --> G[Audit Log]
+    G --> H[Dashboard]
+```
+
+## Setup
+
+```bash
+pnpm install
+cp .env.example .env.local
+pnpm docker:up
+pnpm db:migrate
+pnpm dev
+```
+
+## Contract deployment
+
+```bash
+cd contracts
+forge test -vv
+forge script script/DeployBaseSepolia.s.sol --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY --broadcast --verify --etherscan-api-key $BASESCAN_API_KEY -vvv
+```
+
+## API examples
+
+```bash
+curl -X POST http://localhost:3000/api/rpc -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
+```
+
+```bash
+curl -X POST http://localhost:3000/api/preflight -H "Content-Type: application/json" -d '{"chainId":84532,"from":"0x...","to":"0x...","valueWei":"0","data":"0x095ea7b3...","policyId":"default-wallet-policy"}'
+```
+
+## Security disclaimer
+
+Aegis is a risk reduction layer, not a guarantee against all exploits. Deterministic policy enforces verdicts. AI only explains context.
+```
+
+---
+
+## 25. Final Cut List
+
+### Cut immediately if time is short
+
+| Feature | Reason |
+|---|---|
+| full raw `eth_sendRawTransaction` parser | preflight proves product more reliably |
+| universal DeFi router decoder | too much ABI surface |
+| RWA settlement | not the product |
+| private mempool/relay | not needed for policy proof |
+| full threat intel adapter | can be future adapter |
+| multi-chain | Base Sepolia is enough |
+| complex AI exploit detector | dangerous overclaim |
+| full SDK package | README curl examples enough |
+
+### Minimum winning demo if only 8 hours remain
+
+```text
+1. Next.js app with one demo page
+2. /api/rpc passthrough eth_blockNumber
+3. /api/preflight
+4. hardcoded default policy
+5. approve(MaxUint256) decoder and BLOCK
+6. Chainlink ETH/USD read + USD cap BLOCK
+7. in-memory events + dashboard table
+8. one deployed AegisPolicyRegistry contract
+9. README and video
+```
+
+### Must not cut
+
+```text
+SAFE / WARN / BLOCK verdicts
+Approval blocker
+Chainlink adapter signal
+Dashboard event log
+Deterministic policy decides disclaimer
+```
+
+---
+
+## 26. Final Recommendation
+
+### Final product sentence
+
+Aegis RPC screens Web3 transactions before broadcast by decoding intent, reading adapter signals, enforcing deterministic policies, and logging every SAFE, WARN, or BLOCK decision for operators.
+
+### Final MVP scope
+
+Build a Vercel app with `/api/rpc`, `/api/preflight`, `/api/events`, deterministic policy engine, Chainlink ETH/USD adapter, approval blocker, AI memo fallback, OpsRisk dashboard, and a Base Sepolia `AegisPolicyRegistry` contract.
+
+### Final demo path
+
+```text
+1. Show RPC passthrough
+2. Show agent high-value action BLOCK using Chainlink USD context
+3. Flip policy mode to WARN and show AI PreSigningAssist
+4. Show unlimited approval BLOCK
+5. Show dashboard with all events and on-chain policy hash
+6. Explain business: Security RPC SaaS -> OpsRisk Cloud -> Managed Gateway
+```
+
+### First 10 coding tasks
+
+1. Scaffold Next.js app with Tailwind and shadcn.
+2. Add shared types: `TxIntent`, `AegisPolicy`, `AdapterSignal`, `Verdict`.
+3. Implement transaction decoder for native, approve, transfer, unknown selector.
+4. Implement policy engine and default policies.
+5. Implement ApprovalRiskAdapter.
+6. Implement ChainlinkPriceAdapter with viem.
+7. Implement `/api/preflight`.
+8. Implement `/api/rpc` passthrough.
+9. Implement audit event storage and `/api/events`.
+10. Implement dashboard and agent demo page.
+
+### Biggest risks and mitigations
+
+| Risk | Mitigation |
+|---|---|
+| Chainlink feed address or RPC failure | config-driven address, health card, fallback demo signal |
+| AI memo slow or fails | deterministic fallback templates |
+| Contract deploy time | deploy only registry + demo token/spender |
+| UI takes too long | one combined demo page |
+| Judge thinks it is just a wrapper | lead with policy engine + on-chain registry + adapter signals |
+| Judge thinks it is just Chainlink | state clearly Chainlink is one adapter |
+| Judge thinks AI decides | repeat: AI explains, policy decides |
+
+### Exact judge pitch sentence
+
+"Aegis RPC is the pre-broadcast checkpoint for automated Web3 execution. It lets agents, keepers, wallets, and treasuries ask one question before a transaction reaches the chain: does this action comply with our policy right now?"
+
+### Final build philosophy
+
+Do not chase broad coverage. Make one path undeniable:
+
+```text
+agent proposes risky action
+Aegis decodes it
+Chainlink supplies live context
+policy blocks it
+AI explains it
+dashboard proves it
+policy hash exists on Base Sepolia
+```
+
+That is enough to score on originality, problem-solving, completeness, and scalability.

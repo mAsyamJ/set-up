@@ -1,0 +1,23 @@
+---
+description: Module boundaries for Aegis RPC backend, policy, adapters, AI memo, contracts, and dashboard.
+alwaysApply: false
+globs:
+  - "apps/**"
+  - "packages/**"
+  - "docs/**"
+---
+
+# Architecture boundaries
+
+| Layer | Owns | Must not |
+|-------|------|----------|
+| **RPC gateway** | `/api/rpc` router, read passthrough, tx interception | Policy logic inside route handlers |
+| **Preflight / decoder** | TxIntent, selectors, ERC20 approve/transfer decode | Final verdict |
+| **Policy engine** | Templates, thresholds, `SAFE/WARN/BLOCK`, `reasonCode` | Call AI before deterministic checks |
+| **Adapters** | `AdapterSignal` from Chainlink, approval risk, code, allowlist | Enforce verdict alone |
+| **Verdict engine** | Merge simulation + policy + adapter signals | Skip audit event |
+| **AI memo** | Explanation after verdict context is fixed | Override or replace policy |
+| **Contracts** | Policy registry, demo token/spender on Base Sepolia | Replace off-chain gateway |
+| **Dashboard** | Timeline, signals, memo display | Become the product definition |
+
+Every `BLOCK` requires `reasonCode`. Every path writes an audit event.

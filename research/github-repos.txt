@@ -1,0 +1,26 @@
+# GitHub repos to study as source evidence for Aegis RPC
+# OpenSrc supports owner/repo. Fallback clone is used when needed.
+
+ethereum/execution-apis
+wevm/viem
+vercel/next.js
+smartcontractkit/chainlink
+OpenZeppelin/openzeppelin-contracts
+flashbots/rpc-endpoint
+Tenderly/tenderly-rabby-transaction-preview
+wallet-guard/wallet-guard-extension
+wallet-guard/wallet-guard-snap
+RabbyHub/Rabby
+eth-infinitism/account-abstraction
+eth-infinitism/bundler-spec
+eth-infinitism/bundler
+pimlicolabs/permissionless.js
+safe-global/safe-core-sdk
+safe-global/safe-transaction-service
+OpenZeppelin/openzeppelin-relayer
+OpenZeppelin/defender-sdk
+foundry-rs/foundry
+shadcn-ui/ui
+radix-ui/primitives
+TanStack/query
+supabase/supabase-js

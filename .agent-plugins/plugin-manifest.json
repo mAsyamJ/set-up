@@ -1,0 +1,10 @@
+{
+  "name": "aegis-agent-plugins",
+  "version": "1.0.0",
+  "plugins": [
+    {"id":"codex-verify-workspace","runtime":"codex","purpose":"Verify workspace structure and readiness","allowedTools":["shell","filesystem","tests"],"forbiddenActions":["secrets","deploy-mainnet"],"outputFormat":"verification-summary"},
+    {"id":"kiro-execute-task","runtime":"kiro","purpose":"Execute scoped implementation tasks","allowedTools":["shell","filesystem","tests"],"forbiddenActions":["scope-expansion","secret-logging"],"outputFormat":"changed-files-commands-tests-blockers-next-step"},
+    {"id":"claude-review-architecture","runtime":"claude","purpose":"Review product, architecture, security, and business","allowedTools":["read","reason","critique"],"forbiddenActions":["blind-implementation"],"outputFormat":"risks-fixes-cut-list"},
+    {"id":"hermes-orchestrate","runtime":"hermes","purpose":"Persistent orchestration, scheduled checks, memory, skills","allowedTools":["skills","terminal","memory","messaging","cron"],"forbiddenActions":["enable-telegram-kiro-gateway"],"outputFormat":"status-next-action"}
+  ]
+}

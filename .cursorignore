@@ -1,0 +1,18 @@
+# Large reference docs — load on demand only
+MASTERPLAN.md
+research/source-research-results.md
+currentRepo.md
+
+# Vendor skill bundles
+vendor/skills/
+.agents/skills/
+
+# Tooling dependencies
+tools/**/node_modules/
+**/node_modules/
+
+# Legacy / archive
+tools/archive/
+archive/
+
+prompts/repo-restructure-task.md

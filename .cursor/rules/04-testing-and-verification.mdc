@@ -1,0 +1,23 @@
+---
+description: Verification expectations — unit tests, API curl, forge, demo checklist before claiming done.
+alwaysApply: false
+globs:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "contracts/**"
+  - "apps/**"
+  - "checklists/**"
+---
+
+# Testing and verification
+
+Before claiming a feature is done:
+
+1. **Unit tests** — decoder, policy engine, adapters (`vitest` or project test runner)
+2. **API** — `curl` against `/api/rpc` and `/api/preflight` with known SAFE/WARN/BLOCK cases
+3. **Contracts** — `forge test` on Base Sepolia–oriented contracts
+4. **Demo smoke** — `checklists/demo-readiness.md`, `checklists/deployment-smoke.md`
+
+Always include the exact verification command and its result in the agent response.
+
+Definition of done (product): deterministic test path, audit event, visible in dashboard or test output, supports a demo flow, no mainnet funds required.

@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+!*.env.example
+tools/telegram-kiro-gateway/.env
+tools/archive/telegram-kiro-gateway/.env
+
+# Build / deploy
+dist/
+build/
+.next/
+.vercel/
+out/
+coverage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/settings.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local runtime / cache
+.opensrc-cache/
+*.local

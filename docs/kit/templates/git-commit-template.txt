@@ -1,0 +1,7 @@
+# <type>: <short summary> (module N from HACKATHON.md if applicable)
+#
+# <1-2 sentences: what changed and why>
+#
+# Co-authored-by: Kiro <kiro@aws.dev>
+# Co-authored-by: Hermes <hermes@nousresearch.com>
+# Co-authored-by: Cursor <cursor@cursor.com>

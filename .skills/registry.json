@@ -1,0 +1,14 @@
+{
+  "project": "aegis-rpc",
+  "version": "1.0.0",
+  "rules": [
+    "Aegis RPC is the product",
+    "Chainlink is an adapter, not the product",
+    "AI explains, deterministic policy decides",
+    "Build vertical slices for 24H demo"
+  ],
+  "skills": [
+    "grill-me", "to-prd", "to-issues", "tdd", "improve-codebase-architecture", "systematic-debugging", "handoff", "prototype",
+    "rpc-gateway", "preflight-decoder", "policy-engine", "adapter-layer", "chainlink-price", "approval-risk", "simulation", "ai-analysis", "opsrisk-dashboard", "smart-contract-registry", "docker-dev", "vercel-deploy", "base-sepolia-deploy", "qa-demo", "opensrc-research", "hermes-kiro-runtime"
+  ]
+}

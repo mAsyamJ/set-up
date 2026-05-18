@@ -1,0 +1,29 @@
+---
+description: How coding agents navigate this repo — read order, outputs, and scope control.
+alwaysApply: true
+---
+
+# Agentic workflow
+
+## Read order
+
+1. Root `AGENTS.md` — kit workflow (Hermes, Kiro, rules)
+2. `agents/AGENTS.md` — product swarm contract (when building MVP)
+3. `ORCHESTRATOR.md` — current phase and sequencing
+4. `DECISIONS.md` — past architectural decisions
+5. `tasks/phase-*.md` — active implementation slice
+6. `docs/` product specs; `docs/kit/` for Hermes/Kiro playbooks
+
+## When finishing work, report
+
+- Changed files (paths)
+- Commands run + verification output
+- Tests added or run
+- Blockers
+- Recommended next step
+
+## Scope
+
+- Do not edit attached plan files unless asked
+- Do not push/deploy without approval
+- Use `research/` only when explicitly researching; do not load huge research dumps by default

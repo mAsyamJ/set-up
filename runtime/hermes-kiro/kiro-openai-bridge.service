@@ -1,0 +1,15 @@
+[Unit]
+Description=Kiro OpenAI-Compatible Bridge for Hermes
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/asyam/dev/Project/aegis-hackathon-kit/tools/kiro-openai-bridge
+Environment=AEGIS_WORKSPACE=/home/asyam/dev/Project/aegis-hackathon-kit
+Environment=AEGIS_REPO_PATH=/home/asyam/dev/Project/aegis-hackathon-kit
+ExecStart=/usr/bin/env node server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

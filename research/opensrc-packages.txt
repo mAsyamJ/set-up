@@ -1,0 +1,24 @@
+# npm packages to study through OpenSrc for Aegis RPC MVP
+# Keep this focused. Add more only when implementation needs it.
+
+viem
+zod
+next
+react
+@tanstack/react-query
+@supabase/supabase-js
+@vercel/postgres
+wagmi
+permissionless
+@chainlink/contracts
+@openzeppelin/contracts
+ethers
+@safe-global/protocol-kit
+@safe-global/api-kit
+json-rpc-engine
+lucide-react
+framer-motion
+recharts
+@radix-ui/react-dialog
+@radix-ui/react-tabs
+@radix-ui/react-toast

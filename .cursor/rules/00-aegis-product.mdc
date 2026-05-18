@@ -1,0 +1,27 @@
+---
+description: Aegis RPC product truths, MVP scope, and non-negotiable positioning for hackathon build.
+alwaysApply: true
+---
+
+# Aegis product rules
+
+- **Aegis RPC is the product** — a programmable pre-broadcast transaction screening gateway (wrapped RPC, not a full node).
+- **Chainlink is one adapter only** (`AggregatorV3Interface` price/freshness), not the product story.
+- **AI explains and assists** suspicious context; **deterministic policy** produces final `SAFE`, `WARN`, or `BLOCK`.
+- **OpsRisk dashboard** is the operational proof surface, not the core product.
+
+## 24H MVP scope (build in app repo, not kit)
+
+1. `/api/rpc` JSON-RPC passthrough (read calls)
+2. `/api/preflight` unsigned tx screening
+3. ERC20 `approve(spender, MaxUint256)` → **BLOCK** for unknown spender
+4. `ChainlinkPriceAdapter` (price + freshness signals)
+5. Audit event log (every decision)
+6. OpsRisk dashboard (verdict, signals, memo)
+7. Base Sepolia policy registry proof
+
+## Do not
+
+- Broaden into full RPC node, wallet product, or "Chainlink hackathon project"
+- Claim zero-day prevention or guaranteed hack prevention
+- Implement final product code in **aegis-hackathon-kit** before hackathon build start (kit = OS + runtime)

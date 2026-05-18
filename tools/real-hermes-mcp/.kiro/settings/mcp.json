@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "real-hermes": {
+      "command": "bash -lc 'cd ~/dev/Project/aegis-hackathon-kit/tools/real-hermes-mcp && npx tsx src/server.ts'",
+      "env": {},
+      "timeout": 30000
+    }
+  }
+}
