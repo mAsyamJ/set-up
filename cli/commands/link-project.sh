@@ -9,4 +9,5 @@ MANIFEST="$PROJECT/.harness/project.manifest.json"
 [ -f "$MANIFEST" ] || { echo "Missing manifest: $MANIFEST" >&2; exit 1; }
 echo "Linked $PROJECT to harness $AGENT_HARNESS_HOME"
 "$SCRIPT_DIR/sync-cursor.sh" "$PROJECT"
+"$SCRIPT_DIR/sync-hermes.sh" "$PROJECT"
 "$SCRIPT_DIR/doctor.sh" "$PROJECT"

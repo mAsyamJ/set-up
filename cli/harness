@@ -11,11 +11,13 @@ case "$CMD" in
   smoke)          exec "$HARNESS_ROOT/cli/commands/smoke.sh" "$@" ;;
   sync-cursor)    exec "$HARNESS_ROOT/cli/commands/sync-cursor.sh" "$@" ;;
   sync-skills)    exec "$HARNESS_ROOT/cli/commands/sync-skills.sh" "$@" ;;
+  sync-hermes)    exec "$HARNESS_ROOT/cli/commands/sync-hermes.sh" "$@" ;;
   sync-kanban)    exec "$HARNESS_ROOT/cli/commands/sync-kanban.sh" "$@" ;;
   new-task)       exec "$HARNESS_ROOT/cli/commands/new-task.sh" "$@" ;;
   verify-task)    exec "$HARNESS_ROOT/cli/commands/verify-task.sh" "$@" ;;
   init-project)   exec "$HARNESS_ROOT/cli/commands/init-project.sh" "$@" ;;
   link-project)   exec "$HARNESS_ROOT/cli/commands/link-project.sh" "$@" ;;
+  switch-project) exec "$HARNESS_ROOT/cli/commands/switch-project.sh" "$@" ;;
   index-project)  exec node --import tsx "$HARNESS_ROOT/tools/gateway/index-project.ts" "$@" ;;
   run-task)
     if [ -n "${2:-}" ] && echo "$2" | grep -q '\.md$'; then
@@ -24,7 +26,12 @@ case "$CMD" in
     exec "$HARNESS_ROOT/cli/commands/run-task.sh" "$@"
     ;;
   run-report)     exec node --import tsx "$HARNESS_ROOT/tools/gateway/run-report-cli.ts" "$@" ;;
-  start-mcp)      exec node --import tsx "$HARNESS_ROOT/runtime/mcp/harness-mcp-server/src/server.ts" "$@" ;;
+  start-mcp)
+    PROJECT="${1:-${AEGIS_RPC_ROOT:-$HARNESS_ROOT/projects/aegis-rpc}}"
+    export AEGIS_WORKSPACE="$(cd "$PROJECT" && pwd)"
+    export AEGIS_RPC_ROOT="$AEGIS_WORKSPACE"
+    exec node --import tsx "$HARNESS_ROOT/runtime/mcp/harness-mcp-server/src/server.ts"
+    ;;
   start-a2a)      exec node --import tsx "$HARNESS_ROOT/runtime/a2a/harness-a2a-server/src/server.ts" "$@" ;;
   obsidian)
     SUB="${1:-}"; shift || true

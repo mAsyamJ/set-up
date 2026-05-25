@@ -67,4 +67,17 @@ else
   fi
 fi
 
+# Bootstrap harness OS skills (always)
+for skill_dir in "$AGENT_HARNESS_HOME/runtime/hermes"/skill-*/; do
+  [ -d "$skill_dir" ] || continue
+  [ -f "$skill_dir/SKILL.md" ] || continue
+  base="$(basename "$skill_dir")"
+  name="${base#skill-}"
+  dest="$HERMES_SKILLS/$name"
+  mkdir -p "$dest" "$PROJECT_HARNESS_SKILLS/$name"
+  cp "$skill_dir/SKILL.md" "$dest/SKILL.md"
+  cp "$skill_dir/SKILL.md" "$PROJECT_HARNESS_SKILLS/$name/SKILL.md"
+  echo "OK: bootstrap skill $name"
+done
+
 echo "Done. Project: $PROJECT_HARNESS_SKILLS | Hermes: $HERMES_SKILLS"

@@ -1,0 +1,60 @@
+{
+  "schema": "agent-harness.project.v1",
+  "project": {
+    "name": "kreditagent",
+    "type": "web3-fintech",
+    "root": ".",
+    "description": "MSME credit scoring with x402 micropayments, ERC-8004 agent identity, and on-chain attestation pipeline."
+  },
+  "harness": {
+    "mode": "embedded",
+    "harnessRootEnv": "AGENT_HARNESS_HOME",
+    "defaultHarnessRoot": "../.."
+  },
+  "kanban": {
+    "board": "kreditagent-hackathon",
+    "workspace": "dir:${projectRoot}"
+  },
+  "paths": {
+    "product": ["apps", "packages", "contracts"],
+    "docs": ["docs"],
+    "scripts": ["scripts"],
+    "tasks": ".harness/tasks",
+    "state": ".harness/state"
+  },
+  "commands": {
+    "dev": "pnpm dev",
+    "typecheck": "pnpm typecheck",
+    "lint": "pnpm lint",
+    "test": "pnpm test",
+    "smoke": "pnpm demo:api",
+    "verify": "pnpm typecheck && pnpm test"
+  },
+  "agents": {
+    "enabled": [
+      "orchestrator",
+      "backend",
+      "frontend",
+      "smart-contract",
+      "security",
+      "qa",
+      "docs"
+    ]
+  },
+  "skills": {
+    "enabled": [
+      "systematic-debugging",
+      "tdd",
+      "web3-infra",
+      "solidity-security",
+      "opensrc-research",
+      "hermes-kiro-runtime"
+    ]
+  },
+  "rules": {
+    "noSecrets": true,
+    "requireTaskFile": true,
+    "requireVerification": true,
+    "archiveBeforeDelete": true
+  }
+}

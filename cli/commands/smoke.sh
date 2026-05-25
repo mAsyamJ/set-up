@@ -52,6 +52,20 @@ if [ -x "${AGENT_HARNESS_HOME}/scripts/aegis-model.sh" ]; then
   "${AGENT_HARNESS_HOME}/scripts/aegis-model.sh" status 2>/dev/null || true
 fi
 
+# Hermes harness OS sync
+echo
+echo "=== hermes harness awareness ==="
+if [ -f "${HOME}/.hermes/skills/agent-harness-os/SKILL.md" ]; then
+  echo "OK: agent-harness-os skill"
+else
+  echo "WARN: agent-harness-os skill missing — run: cli/harness sync-hermes $PROJECT"
+fi
+if [ -f "${HOME}/.hermes/config.yaml" ] && grep -q 'harness:' "${HOME}/.hermes/config.yaml" 2>/dev/null; then
+  echo "OK: harness MCP in hermes config"
+else
+  echo "WARN: harness MCP not merged — run: cli/harness sync-hermes $PROJECT"
+fi
+
 echo
 if [ "$ERR" -eq 0 ]; then
   echo "=== smoke PASSED ==="

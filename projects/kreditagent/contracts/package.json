@@ -1,0 +1,13 @@
+{
+  "name": "@kreditagent/contracts-production",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test -vvv",
+    "test:ci": "forge test --profile ci -vvv",
+    "snapshot": "forge snapshot",
+    "deploy:sepolia": "forge script script/DeployKreditProtocol.s.sol --rpc-url $SEPOLIA_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY --broadcast --verify",
+    "deploy:base-sepolia": "forge script script/DeployKreditProtocol.s.sol --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY --broadcast --verify"
+  }
+}

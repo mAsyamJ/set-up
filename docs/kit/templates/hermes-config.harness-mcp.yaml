@@ -1,0 +1,13 @@
+# Harness MCP server block for ~/.hermes/config.yaml
+# Merged by scripts/merge-hermes-harness-mcp.sh — do not edit placeholders manually
+mcp_servers:
+  harness:
+    command: node
+    args:
+      - "--import"
+      - "tsx"
+      - "@AGENT_HARNESS_HOME@/runtime/mcp/harness-mcp-server/src/server.ts"
+    env:
+      AGENT_HARNESS_HOME: "@AGENT_HARNESS_HOME@"
+      AEGIS_WORKSPACE: "@AEGIS_RPC_ROOT@"
+      AEGIS_RPC_ROOT: "@AEGIS_RPC_ROOT@"

@@ -1,0 +1,18 @@
+# KreditAgent external/ study repos — OpenSrc coordinates (github.com/org/repo)
+# Generated from git remotes under ~/dev/Project/KreditAgent/kreditagent-hackathon/external/
+# Do not vendor-copy external/ into projects/kreditagent — use opensrc path instead.
+
+github.com/up2itnow0822/agentwallet-sdk
+github.com/AgentlyHQ/aixyz
+github.com/sudeepb02/awesome-erc8004
+github.com/celo-org/agent-skills
+github.com/ChaosChain/chaoschain-sdk-ts
+github.com/cobotgg/cobotsdk
+github.com/erc-8004/erc-8004-contracts
+github.com/primev/mainnet-x402-facilitator
+github.com/second-state/x402-facilitator
+github.com/second-state/x402-skill
+github.com/x402-foundation/x402
+github.com/xpaysh/x402-agent-kit
+github.com/t54-labs/x402-secure
+github.com/0xkoda/x402-wallet

@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Borrower {
+  id        String   @id
+  displayName String
+  wallet    String?
+  foruDid   String?
+  createdAt DateTime @default(now())
+  scores    Score[]
+}
+
+model Score {
+  id           String   @id
+  borrowerId   String
+  score        Int
+  band         String
+  scoreVersion String
+  evidenceHash String
+  featureHash  String
+  createdAt    DateTime @default(now())
+  borrower     Borrower @relation(fields: [borrowerId], references: [id])
+}
+
+model Attestation {
+  id             String   @id
+  borrowerAgentId Int
+  issuerAgentId   Int
+  score           Int
+  band            String
+  evidenceHash    String
+  featureHash     String
+  signature       String
+  createdAt       DateTime @default(now())
+}
+
+model PaymentReceipt {
+  id            String   @id
+  protocol      String
+  network       String
+  resource      String
+  receiptHash   String
+  lenderAgentId Int
+  createdAt     DateTime @default(now())
+}

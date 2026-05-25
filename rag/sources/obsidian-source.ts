@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { RagStore } from "../stores/sqlite-fts.js";
 import { isSecretPath } from "../../core/policy/path-policy.js";
-import { loadObsidianConfig } from "../../integrations/obsidian/vault-config.js";
+import { loadObsidianConfig, resolveVaultPath } from "../../integrations/obsidian/vault-config.js";
 
 function walkVault(dir: string, cb: (file: string) => void): void {
   if (!fs.existsSync(dir)) return;
@@ -22,7 +22,7 @@ export function indexObsidianVault(projectRoot: string, store: RagStore): number
   const cfg = loadObsidianConfig(projectRoot);
   if (!cfg?.enabled) return 0;
 
-  const vaultRoot = path.resolve(projectRoot, cfg.vaultPath);
+  const vaultRoot = resolveVaultPath(projectRoot, cfg);
   if (!fs.existsSync(vaultRoot)) return 0;
 
   let n = 0;

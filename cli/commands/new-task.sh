@@ -2,6 +2,7 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/../../scripts/lib/paths.sh"
+. "$SCRIPT_DIR/../../scripts/lib/project-manifest.sh"
 PROJECT="${1:-}"
 TITLE="${2:-}"
 PHASE="${3:-general}"
@@ -63,10 +64,11 @@ EOF
 fi
 
 if [ -n "$KANBAN" ] && command -v hermes >/dev/null 2>&1; then
-  BOARD="${AEGIS_KANBAN_BOARD:-aegis-hackathon}"
+  BOARD="$(kanban_board_for_project "$PROJECT")"
+  BOARD="${BOARD:-${AEGIS_KANBAN_BOARD:-aegis-hackathon}}"
   WS="dir:${PROJECT}"
   echo "Adding Kanban card on board ${BOARD}..."
-  if out="$(hermes kanban --board "$BOARD" add "$TITLE" --workspace "$WS" 2>&1)"; then
+  if out="$(hermes kanban --board "$BOARD" create "$TITLE" --workspace "$WS" 2>&1)"; then
     echo "$out"
     # Try to extract task id from hermes output (t_xxxxxxxx)
     kb_id="$(echo "$out" | grep -oE 't_[a-f0-9]+' | head -1 || true)"
@@ -78,7 +80,7 @@ if [ -n "$KANBAN" ] && command -v hermes >/dev/null 2>&1; then
       echo "Linked kanban_id: ${KANBAN_ID}"
     fi
   else
-    echo "WARN: hermes kanban add failed (task file still created)" >&2
+    echo "WARN: hermes kanban create failed (task file still created)" >&2
   fi
 fi
 

@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: kredit
+      POSTGRES_PASSWORD: kredit
+      POSTGRES_DB: kreditagent
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "4000:4000"
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    env_file: .env
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+volumes:
+  pgdata:

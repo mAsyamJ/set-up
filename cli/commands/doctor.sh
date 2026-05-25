@@ -3,6 +3,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../scripts/lib/paths.sh
 . "$SCRIPT_DIR/../../scripts/lib/paths.sh"
+# shellcheck source=../../scripts/lib/project-manifest.sh
+. "$SCRIPT_DIR/../../scripts/lib/project-manifest.sh"
 
 PROJECT="${1:-$AEGIS_RPC_ROOT}"
 PROJECT="$(cd "$PROJECT" 2>/dev/null && pwd || echo "$PROJECT")"
@@ -75,13 +77,28 @@ fi
 # Hermes Kanban
 if [ -x "$HERMES_BIN" ] || command -v hermes >/dev/null 2>&1; then
   HBIN="${HERMES_BIN:-hermes}"
-  if "$HBIN" kanban --board aegis-hackathon stats 2>/dev/null | head -5; then
-    ok "hermes kanban aegis-hackathon stats"
+  BOARD="$(kanban_board_for_project "$PROJECT")"
+  BOARD="${BOARD:-${AEGIS_KANBAN_BOARD:-aegis-hackathon}}"
+  if "$HBIN" kanban --board "$BOARD" stats 2>/dev/null | head -5; then
+    ok "hermes kanban $BOARD stats"
   else
-    warn "hermes kanban stats unavailable"
+    warn "hermes kanban stats unavailable (board: $BOARD)"
   fi
 else
   warn "hermes CLI not found"
+fi
+
+# Hermes harness OS awareness
+HERMES_SKILL="${HOME}/.hermes/skills/agent-harness-os/SKILL.md"
+if [ -f "$HERMES_SKILL" ]; then
+  ok "hermes skill agent-harness-os installed"
+else
+  warn "hermes skill agent-harness-os missing (run: cli/harness sync-hermes $PROJECT)"
+fi
+if [ -f "${HOME}/.hermes/config.yaml" ] && grep -q 'harness:' "${HOME}/.hermes/config.yaml" 2>/dev/null; then
+  ok "hermes config mcp_servers.harness present"
+else
+  warn "hermes MCP harness not in ~/.hermes/config.yaml (run: cli/harness sync-hermes $PROJECT)"
 fi
 
 echo

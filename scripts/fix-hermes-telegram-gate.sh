@@ -37,8 +37,15 @@ fi
 
 echo "=== 4. Provider skill ==="
 mkdir -p "${HOME}/.hermes/skills/aegis-provider-switch"
-cp "${AEGIS_REPO_ROOT}/docs/kit/templates/hermes-provider-switch/SKILL.md" \
+cp "${AGENT_HARNESS_HOME}/docs/kit/templates/hermes-provider-switch/SKILL.md" \
   "${HOME}/.hermes/skills/aegis-provider-switch/SKILL.md"
+
+echo "=== 4b. Harness OS sync (skills + MCP) ==="
+if [ -x "${AGENT_HARNESS_HOME}/cli/harness" ]; then
+  "${AGENT_HARNESS_HOME}/cli/harness" sync-hermes "${AEGIS_RPC_ROOT:-${AEGIS_REPO_ROOT}/projects/aegis-rpc}"
+else
+  bash "${AGENT_HARNESS_HOME}/cli/commands/sync-hermes.sh" "${AEGIS_RPC_ROOT:-${AEGIS_REPO_ROOT}/projects/aegis-rpc}"
+fi
 
 echo "=== 5. Restart Hermes gateway ==="
 systemctl --user restart hermes-gateway.service

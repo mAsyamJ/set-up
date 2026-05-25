@@ -71,6 +71,12 @@ if systemctl --user is-active --quiet hermes-gateway 2>/dev/null; then
   echo "Restarted hermes-gateway (pick up skills)"
 fi
 
+# Agent Harness OS skills + MCP
+if [ -x "${AGENT_HARNESS_HOME}/cli/harness" ]; then
+  "${AGENT_HARNESS_HOME}/cli/harness" sync-hermes "${AEGIS_RPC_ROOT}" 2>/dev/null || \
+    bash "${AGENT_HARNESS_HOME}/cli/commands/sync-hermes.sh" "${AEGIS_RPC_ROOT}" || true
+fi
+
 chmod +x "${AEGIS_REPO_ROOT}/scripts/aegis-secrets-health.sh" \
   "${AEGIS_REPO_ROOT}/scripts/aegis-secrets-maintain.sh" 2>/dev/null || true
 

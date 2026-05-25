@@ -1,4 +1,5 @@
 const express = require("express");
+const fs = require("node:fs");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const path = require("node:path");
@@ -144,10 +145,39 @@ function runtimeTruthLines(providerModel) {
     backendLine,
     "- Hivemind (Deeplake) is SHARED org memory across Cursor, Hermes, and Codex on this machine.",
     "- If asked whether memory is shared across Kiro/Cursor/Hermes: say YES for Hivemind; Kiro IDE uses hivemind MCP; this Telegram path gets the excerpt below.",
+    "- Agent Harness OS (doc-10 local control plane): typed tool gateway, harness MCP, RAG with source priority, Obsidian vault summaries, A2A on 127.0.0.1:8790, TS supervisor.",
+    "- Harness CLI: cli/harness {doctor,index-project,obsidian,run-task,start-mcp,start-a2a,sync-hermes}. Vault: ~/dev/Project/_vaults/agentic-engineering (UNTRUSTED_CONTEXT in RAG).",
+    "- If asked about new capabilities after upgrade: describe Agent Harness OS additions (MCP, RAG, Obsidian, A2A), not only generic Hermes platform tools. Load skill agent-harness-os.",
     identityLine,
     "- Always return visible text. Never return an empty response.",
     ...constraints,
+    ...harnessManifestLines(),
   ];
+}
+
+let _manifestCache = { at: 0, lines: [] };
+
+function harnessManifestLines() {
+  const now = Date.now();
+  if (now - _manifestCache.at < 60_000) return _manifestCache.lines;
+  _manifestCache.at = now;
+  _manifestCache.lines = [];
+  try {
+    const manifestPath = path.join(WORKSPACE, ".harness", "project.manifest.json");
+    if (!fs.existsSync(manifestPath)) return [];
+    const m = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const name = m?.project?.name || "unknown";
+    const desc = (m?.project?.description || "").slice(0, 120);
+    _manifestCache.lines = [
+      "",
+      "Active harness project (from manifest):",
+      `- name: ${name}`,
+      desc ? `- description: ${desc}` : "",
+    ].filter(Boolean);
+  } catch {
+    _manifestCache.lines = [];
+  }
+  return _manifestCache.lines;
 }
 
 function messagesToPrompt(messages, providerModel) {

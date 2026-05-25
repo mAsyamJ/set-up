@@ -25,4 +25,10 @@ describe("harness skeleton", () => {
     const reg = JSON.parse(fs.readFileSync(path.join(root, "agents/registry.json"), "utf8"));
     assert.ok(reg.agents?.orchestrator);
   });
+
+  it("has hermes harness OS skills and merge script", () => {
+    assert.ok(fs.existsSync(path.join(root, "runtime/hermes/skill-agent-harness-os/SKILL.md")));
+    assert.ok(fs.existsSync(path.join(root, "scripts/merge-hermes-harness-mcp.py")));
+    assert.ok(fs.existsSync(path.join(root, "cli/commands/sync-hermes.sh")));
+  });
 });

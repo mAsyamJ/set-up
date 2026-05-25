@@ -1,0 +1,11 @@
+---
+description: Harness workflow — read project manifest and use AGENT_HARNESS_HOME for runtime docs
+alwaysApply: true
+---
+
+# Harness rules
+
+1. Read `<project>/.harness/project.manifest.json` and `project-context.md` first.
+2. Generic runtime docs: `$AGENT_HARNESS_HOME/docs/kit/`.
+3. Do not mix product specs into harness root changes.
+4. Run verification commands from the project manifest.

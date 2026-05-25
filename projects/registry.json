@@ -1,0 +1,21 @@
+{
+  "schema": "agent-harness.projects.v1",
+  "default": "aegis-rpc",
+  "projects": {
+    "aegis-rpc": {
+      "path": "projects/aegis-rpc",
+      "kanban": "aegis-hackathon",
+      "displayName": "Aegis RPC"
+    },
+    "kreditagent": {
+      "path": "projects/kreditagent",
+      "kanban": "kreditagent-hackathon",
+      "displayName": "KreditAgent"
+    },
+    "retropick": {
+      "path": "projects/retropick",
+      "kanban": "retropick-v1",
+      "displayName": "RetroPick"
+    }
+  }
+}

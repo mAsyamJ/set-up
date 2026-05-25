@@ -1,0 +1,31 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "KreditAgent Underwriting Agent",
+  "description": "Deterministic credit attestation agent for Indonesian MSME lending.",
+  "image": "https://kreditagent.local/logo.png",
+  "services": [
+    {
+      "name": "web",
+      "endpoint": "http://localhost:3000"
+    },
+    {
+      "name": "attestation-api",
+      "endpoint": "http://localhost:4000/v1/attestations"
+    },
+    {
+      "name": "MCP",
+      "endpoint": "http://localhost:4000/mcp"
+    },
+    {
+      "name": "DID",
+      "endpoint": "did:foru:kreditagent-demo"
+    }
+  ],
+  "x402Support": true,
+  "active": true,
+  "supportedTrust": [
+    "reputation",
+    "validation",
+    "audit-grade-credit-scoring"
+  ]
+}

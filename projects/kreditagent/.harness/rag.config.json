@@ -1,0 +1,31 @@
+{
+  "include": [
+    "apps/**",
+    "packages/**",
+    "contracts/**",
+    "docs/**",
+    ".harness/project-context.md",
+    "AGENTS.md",
+    "ORCHESTRATOR.md",
+    "DECISIONS.md"
+  ],
+  "exclude": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/dist/**",
+    "**/out/**",
+    "**/cache/**",
+    "**/broadcast/**",
+    "**/forge-artifacts/**",
+    "**/forge-out/**",
+    "external/**",
+    "**/.turbo/**"
+  ],
+  "sourcePriority": {
+    "manifest": 1,
+    "projectContext": 2,
+    "agents": 3,
+    "obsidian": 4,
+    "code": 5
+  }
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "loanId": "loan_demo_001",
+    "amountIdr": 1500000,
+    "paidAt": "2026-04-15T10:00:00+07:00",
+    "status": "on_time"
+  }
+]

@@ -44,3 +44,30 @@ All agents can read/write: `AGENTS.md`, `docs/`, `.hermes/plans/`, Kanban boards
 ## Capture health
 
 If summaries fail (502 in `~/.hermes/hooks/deeplake-wiki.log`), run `scripts/verify-hivemind-shared-memory.sh` and ensure `OPENROUTER_API_KEY` is set for wiki summarization (`hermes -z`).
+
+## Agent Harness OS (doc-10)
+
+**Agent Harness OS** is the local control plane on `agent-harness` repo (May 2026 upgrade): typed tool gateway, harness MCP, RAG, Obsidian vault, A2A server, TS supervisor.
+
+When the user asks about **capabilities**, **upgrade**, **what you can do**, or **new features**:
+
+1. Load skill **`agent-harness-os`** via `skill_view` first.
+2. Describe harness OS additions — not only generic Hermes platform tools or skill registry names.
+3. Store durable fact in Hermes `memory`: *Agent Harness OS doc-10 live: MCP + RAG + Obsidian + A2A + TS orchestrator.*
+
+### Memory layers (do not conflate)
+
+| Layer | Scope |
+|-------|--------|
+| **Hivemind** | Org-wide cross-agent memory |
+| **Harness RAG** | Project retrieval (`harness_rag_search` / `cli/harness index-project`) |
+| **Obsidian vault** | Human notes at `~/dev/Project/_vaults/agentic-engineering` — **UNTRUSTED_CONTEXT** in RAG |
+| **Hermes memory** | Session preferences only |
+
+### Harness MCP (when wired in ~/.hermes/config.yaml)
+
+Use `harness_project_inspect`, `harness_rag_search`, `harness_task_create`, `harness_verify_run`, etc. See skill **harness-mcp**.
+
+Telegram-safe CLI fallback: `scripts/hermes-harness-cli.sh <project> <cmd>`
+
+After harness changes: `cli/harness sync-hermes <project>` then restart `hermes-gateway`.

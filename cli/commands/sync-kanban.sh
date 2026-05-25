@@ -3,10 +3,13 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/../../scripts/lib/paths.sh"
+. "$SCRIPT_DIR/../../scripts/lib/project-manifest.sh"
 
 PROJECT="${1:-$AEGIS_RPC_ROOT}"
-BOARD="${2:-aegis-hackathon}"
+BOARD_ARG="${2:-}"
 PROJECT="$(cd "$PROJECT" && pwd)"
+BOARD="$(kanban_board_for_project "$PROJECT")"
+BOARD="${BOARD_ARG:-${BOARD:-${AEGIS_KANBAN_BOARD:-aegis-hackathon}}}"
 ACTIVE="$PROJECT/.harness/tasks/active"
 mkdir -p "$ACTIVE"
 

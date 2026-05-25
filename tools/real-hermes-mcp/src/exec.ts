@@ -3,11 +3,24 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
-export const WORKSPACE =
-  process.env.AEGIS_WORKSPACE || "/home/asyam/dev/Project/agent-harness";
+function defaultHarnessHome(): string {
+  if (process.env.AGENT_HARNESS_HOME) return process.env.AGENT_HARNESS_HOME;
+  if (process.env.AEGIS_REPO_ROOT) return process.env.AEGIS_REPO_ROOT;
+  return process.cwd();
+}
 
-export const HERMES_BIN =
-  process.env.HERMES_BIN || "/home/asyam/.local/bin/hermes";
+function defaultHermesBin(): string {
+  if (process.env.HERMES_BIN) return process.env.HERMES_BIN;
+  const home = process.env.HOME ?? "";
+  return home ? `${home}/.local/bin/hermes` : "hermes";
+}
+
+export const WORKSPACE =
+  process.env.AEGIS_WORKSPACE ||
+  process.env.AEGIS_RPC_ROOT ||
+  defaultHarnessHome();
+
+export const HERMES_BIN = defaultHermesBin();
 
 export const KIRO_BRIDGE_URL =
   process.env.KIRO_BRIDGE_URL || "http://127.0.0.1:8787";

@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/paths.sh"
 # shellcheck source=lib/decisions-gate.sh
 source "${SCRIPT_DIR}/lib/decisions-gate.sh"
+# shellcheck source=lib/project-manifest.sh
+source "${SCRIPT_DIR}/lib/project-manifest.sh"
 
 BOARD="${AEGIS_KANBAN_BOARD:-aegis-hackathon}"
 D3_TASK="t_481e57d1"
@@ -39,7 +41,8 @@ if ! command -v hermes >/dev/null 2>&1; then
   exit 0
 fi
 
-# Reclaim stuck D3 worker runs
+# Reclaim stuck D3 worker runs (aegis-rpc board only)
+if [ "$BOARD" = "aegis-hackathon" ]; then
 hermes kanban --board "$BOARD" reclaim "$D3_TASK" 2>/dev/null || true
 
 d3_status="$(hermes kanban --board "$BOARD" show "$D3_TASK" 2>/dev/null | awk '/^[[:space:]]*status:/ {print $2; exit}')"
@@ -80,6 +83,7 @@ if aegis_decisions_d3_approved; then
       "Deploy summary exists. ${VERIFY_BODY}" 2>/dev/null || true
   fi
 fi
+fi
 
 ready="$(hermes kanban --board "$BOARD" stats 2>/dev/null | awk '$1 == "ready" { print $2; exit }')"
 running="$(hermes kanban --board "$BOARD" stats 2>/dev/null | awk '$1 == "running" { print $2; exit }')"
@@ -88,7 +92,7 @@ running="${running:-0}"
 blocked="$(hermes kanban --board "$BOARD" stats 2>/dev/null | awk '$1 == "blocked" { print $2; exit }')"
 blocked="${blocked:-0}"
 
-if [ "$ready" -eq 0 ] && [ "$running" -eq 0 ] && [ "$blocked" -eq 0 ]; then
+if [ "$ready" -eq 0 ] && [ "$running" -eq 0 ] && [ "$blocked" -eq 0 ] && [ "$BOARD" = "aegis-hackathon" ]; then
   echo "Board idle — seed plan.md all-agent wave (idempotent)"
   "${SCRIPT_DIR}/aegis-kanban-seed-planmd-wave.sh" || true
   ready="$(hermes kanban --board "$BOARD" stats 2>/dev/null | awk '$1 == "ready" { print $2; exit }')"
@@ -102,7 +106,12 @@ elif [ "$ready" -eq 0 ] && [ "$running" -eq 0 ] && [ "$blocked" -le 1 ]; then
 fi
 
 echo "Dispatch wave..."
-"${SCRIPT_DIR}/aegis-kanban-dispatch-once.sh"
+if [ -n "${AEGIS_KANBAN_BOARD:-}" ]; then
+  AEGIS_KANBAN_BOARD="$BOARD" "${SCRIPT_DIR}/aegis-kanban-dispatch-once.sh"
+else
+  unset AEGIS_KANBAN_BOARD
+  "${SCRIPT_DIR}/aegis-kanban-dispatch-once.sh"
+fi
 
 # Same timer tick: extra dispatch waves when ready>0 and worker slots are free (hands-off drain).
 # Hermes typically allows up to --max 2 concurrent runs; avoid stacking while running>=2.
