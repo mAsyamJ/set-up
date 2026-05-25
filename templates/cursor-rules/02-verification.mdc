@@ -1,0 +1,9 @@
+---
+description: Verification before claiming done
+alwaysApply: true
+---
+
+# Verification
+
+Run project manifest commands (`typecheck`, `test`, `smoke`) before marking tasks done.
+Move tasks: active → review → done under `.harness/tasks/`.

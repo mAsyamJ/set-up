@@ -1,0 +1,36 @@
+{
+  "tools": {
+    "repo.read": { "risk": "R0", "default": "allow" },
+    "repo.search": { "risk": "R0", "default": "allow" },
+    "git.status": { "risk": "R0", "default": "allow" },
+    "git.diff": { "risk": "R0", "default": "allow" },
+    "task.create": { "risk": "R1", "default": "allow" },
+    "task.move": { "risk": "R1", "default": "allow" },
+    "project.inspect": { "risk": "R0", "default": "allow" },
+    "verify.run": { "risk": "R1", "default": "allow" },
+    "rag.search": { "risk": "R0", "default": "allow" },
+    "patch.propose": { "risk": "R2", "default": "allow" },
+    "repo.apply_patch": { "risk": "R2", "default": "deny" },
+    "shell.run": { "risk": "R3", "default": "deny" },
+    "github.push": { "risk": "R4", "default": "deny" },
+    "secrets.read": { "risk": "R5", "default": "deny" }
+  },
+  "forbiddenPatterns": [
+    "rm -rf",
+    "curl | sh",
+    "wget | sh",
+    "sudo",
+    "chmod 777",
+    "cat .env",
+    "printenv"
+  ],
+  "allowedShellCommands": [
+    "pnpm test",
+    "pnpm typecheck",
+    "pnpm lint",
+    "npm test",
+    "npm run typecheck",
+    "git status",
+    "git diff"
+  ]
+}

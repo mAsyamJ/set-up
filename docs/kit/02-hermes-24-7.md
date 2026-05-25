@@ -36,7 +36,7 @@ flowchart LR
 Enable on login (once):
 
 ```bash
-~/dev/Project/aegis-hackathon-kit/scripts/install-systemd-user.sh
+~/dev/Project/agent-harness/scripts/install-systemd-user.sh
 ```
 
 ## Three surfaces
@@ -54,7 +54,22 @@ Setup (once in Telegram):
 
 `/start` may not exist — use `/commands` instead.
 
-Provider: custom OpenAI-compatible endpoint at `http://127.0.0.1:8787/v1` (Kiro bridge). Requires `aegis-dev` / stack running.
+Provider: custom OpenAI-compatible endpoint at `http://127.0.0.1:8787/v1` (multi-provider bridge: Kiro or Cursor). Requires `aegis-dev` / stack running.
+
+**Switch inference backend (once per machine):**
+
+1. Provider skill: installed automatically by `scripts/install-systemd-user.sh` to `~/.hermes/skills/aegis-provider-switch/`. Manual copy only if needed; then `systemctl --user restart hermes-gateway`.
+
+2. For Cursor (headless agent — edits + shell in workspace):
+   - `scripts/setup-cursor-bridge-auth.sh` (`agent login` or `CURSOR_API_KEY` in `~/.hermes/.env`)
+   - Optional: `CURSOR_BRIDGE_MODE=agent` in `~/.hermes/.env` (default; use `ask` for read-only)
+   - `systemctl --user restart kiro-openai-bridge`
+
+3. In Telegram: `/provider` (status), `/provider kiro`, `/provider cursor` — then `/reset` after switching.
+
+4. Smoke: `scripts/smoke-cursor-bridge.sh`
+
+CLI equivalent: `scripts/aegis-model.sh status|kiro|cursor`
 
 ### 2. Hermes CLI (terminal)
 
@@ -86,7 +101,10 @@ Run `/commands` in Telegram for the live list. Common commands:
 |---------|-----|
 | `/commands` | List available commands |
 | `/set-home` | Set this chat as home channel (cron delivery) |
-| `/model` | Show provider (should be custom → Kiro bridge) |
+| `/model` | Show provider URL (custom → `http://127.0.0.1:8787/v1`) |
+| `/provider` | Show active bridge backend (Kiro vs Cursor) — requires [`aegis-provider-switch` skill](templates/hermes-provider-switch/SKILL.md) |
+| `/provider kiro` | Switch Hermes inference to `kiro-cli` |
+| `/provider cursor` | Switch Hermes inference to headless Cursor Agent (edits + shell) |
 | `/plan …` | **Plan mode** — planning only; saves to `.hermes/plans/` |
 | `/new`, `/reset` | Fresh session |
 | `/history` | Conversation history (CLI) |
@@ -130,7 +148,7 @@ Grill me on security: unlimited ERC20 approvals, unknown spenders, and why AI do
 ### Kiro pitch agent (structured grill)
 
 ```bash
-cd ~/dev/Project/aegis-hackathon-kit   # or your app repo
+cd ~/dev/Project/agent-harness   # or your app repo
 kiro-cli --agent pitch
 ```
 
@@ -293,6 +311,41 @@ Do not use phone messaging for:
 | **Hermes gateway** | 24/7 Telegram, memory, skills, cron |
 | **Kiro bridge :8787** | Model backend for Hermes Telegram only |
 
+## Troubleshooting: Telegram stall (“no chunks yet”, retries)
+
+Symptoms in **Aegis Hermes** chat:
+
+- `⏳ Still working... waiting for stream response (150s, no chunks yet)` — bridge not sending SSE yet (older bridge) or very slow provider start
+- `⏳ Still working... receiving stream response` then `⏳ Retrying in … (attempt 1/3)` after **~9–10+ min** — keepalives work, but **Cursor/Kiro subprocess hit the bridge time limit** (`killed: SIGTERM` in bridge logs). Common with **50+ message** Telegram sessions and “orchestrate phase N” prompts.
+- Long run with **iteration 1/90** and no final assistant text
+
+**Cause:** Hermes streams from `http://127.0.0.1:8787/v1`. The bridge runs **Kiro CLI** or **Cursor Agent** locally. Large sessions get a **scaled timeout** (up to 60m); if the subprocess still exceeds it, the bridge returns **504** / `Provider command failed` and Hermes retries.
+
+**Unblock (operator):**
+
+1. Send `/reset` (or `/new`) in Telegram to drop the stuck turn.
+2. `aegis-dev` then `curl -sf http://127.0.0.1:8787/health`
+3. Check logs: `journalctl --user -u kiro-openai-bridge -n 50` and `grep timeout_error ~/.hermes/logs/errors.log | tail -5`
+4. **Do not** re-orchestrate a completed hackathon phase in Telegram — use Kanban + scripts (see `aegis-rpc/ORCHESTRATOR.md`). Example: Phase 4 grill is done; Phase 5 is Vercel (human steps).
+
+**Stack fixes (kit):**
+
+- Bridge emits **SSE keepalives** every ~18s while the provider runs (`AEGIS_BRIDGE_SSE_HEARTBEAT_MS`).
+- Provider timeouts default to **20 minutes**, scaling to **40–60 minutes** when `messageCount >= 40` or the prompt is very large (`KIRO_BRIDGE_TIMEOUT_MS`, `CURSOR_BRIDGE_TIMEOUT_MS`, `AEGIS_BRIDGE_TIMEOUT_CAP_MS` in `systemd/user/kiro-openai-bridge.service`).
+- After changing bridge code or units: `systemctl --user daemon-reload && systemctl --user restart kiro-openai-bridge hermes-gateway`
+
+**Stream smoke test:**
+
+```bash
+curl -N http://127.0.0.1:8787/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"cursor-composer-2","stream":true,"messages":[{"role":"user","content":"Reply with exactly: pong"}]}'
+```
+
+You should see `data: {` lines within ~20s even if the provider is still working.
+
+**Prefer headless orchestration** for ship phases: `scripts/aegis-pm-orchestrate-once.sh` and `hermes kanban dispatch` — not long “orchestrate phase N” prompts in Telegram.
+
 ## Kanban (multi-agent, headless)
 
 Hermes Kanban is a durable SQLite board shared across **named profiles**. This kit uses two boards:
@@ -312,9 +365,56 @@ hermes kanban --board aegis-kit list
 hermes dashboard    # http://127.0.0.1:9119
 ```
 
-Workers must use absolute workspaces: `--workspace "dir:/home/asyam/dev/Project/aegis-hackathon-kit"`.
+Workers must use absolute workspaces: `--workspace "dir:/home/asyam/dev/Project/agent-harness"`.
 
 Full runbook: [.hermes/plans/24-7-multi-agent-environment.md](../../.hermes/plans/24-7-multi-agent-environment.md).
+
+## Headless 24/7 install (PM + PABTI)
+
+Orchestration plan (product repo): `aegis-rpc/.hermes/plans/2026-05-20_201500-headless-pm-pabti-orchestrate-agent-github-10m.md`
+
+**One-shot install:**
+
+```bash
+~/dev/Project/agent-harness/scripts/install-aegis-headless-24-7.sh
+```
+
+This chains: WSL Telegram drop-in, bridge/gateway restart, **10m PM cron** (script-only), **~5m Lane O timer** (orchestrate + dispatch + optional extra waves), and secrets health.
+
+**Prerequisites:** `loginctl enable-linger`, Telegram `/set-home`, `~/.hermes/.env` with `TELEGRAM_BOT_TOKEN` and `CURSOR_API_KEY` or `agent login`. For D3 deploy: `DEPLOYER_PRIVATE_KEY` in **local** `aegis-rpc/.env` (gitignored).
+
+**Telegram “execute orchestrate” is not Lane O** — chat runs health checks manually; true 24/7 orchestration is **systemd + scripts**.
+
+| Lane | Script / unit | Role |
+|------|----------------|------|
+| **A** | `aegis-pm-tick-10m` (cron) | Status to Telegram every 10m; reads `DECISIONS.md` for D3/push policy |
+| **O** | `aegis-pm-orchestrate-once.sh` (~5m timer) | Unblock D3 if approved, `aegis-d3-deploy-once.sh`, seed backlog, `dispatch --max 2`, then optional extra waves while `ready>0` and `running<2` |
+| **B** | Kanban workers (`aegis-*` profiles) | Cursor bridge PABTI on `ready` cards; must `kanban_complete` / `kanban_block` |
+
+**Hands-off (no daily clicks):** With `loginctl enable-linger`, gateway + bridge user units active, and `install-aegis-headless-24-7.sh` applied, Lane O and the 10m PM cron run on their own. You still need the **machine/WSL session up**, Hermes workers that **actually execute** dispatched cards (bridge `CURSOR_BRIDGE_MODE=agent`), and **human approval** for `git push`, protected merges, Vercel prod, and mainnet-style keys — automation does not override `DECISIONS.md`.
+
+**D3 (script-only deploy):** Operator approval in `aegis-rpc/DECISIONS.md` → `scripts/aegis-d3-deploy-once.sh` (forge, no LLM) → `aegis-devops` worker **verifies only** (reads `.hermes/deploy/latest-summary.txt`).
+
+**Seed ready tasks when board is empty:**
+
+```bash
+scripts/aegis-kanban-seed-ready.sh
+scripts/aegis-kanban-seed-plan-backlog.sh   # stretch/pitch when fully idle
+scripts/aegis-pm-orchestrate-once.sh        # manual Lane O run
+```
+
+**API key maintenance (authorized):** `scripts/aegis-secrets-health.sh`, `scripts/aegis-secrets-maintain.sh`, skill `aegis-secrets-maintain` — see `aegis-rpc/DECISIONS.md`. Never paste keys in Telegram.
+
+### Validation checklist
+
+| Check | Expected |
+|-------|----------|
+| Telegram PM post | Every ~10m: `=== Aegis PM status ===` |
+| Credentials line | `telegram=OK cursor=OK` (no key material) |
+| Bridge | `curl -sf http://127.0.0.1:8787/health` → `bridgeMode: agent`, `configured: true` |
+| Lane O | `journalctl --user -u aegis-kanban-dispatch.service -n 30` shows orchestrate + dispatch |
+| D3 deploy | `aegis-d3-deploy-once.sh` exit 0 + summary file; then devops worker completes card |
+| WSL limits | VM must stay running; Windows sleep/shutdown stops user systemd |
 
 ## Cron (scheduled orchestration)
 
@@ -329,6 +429,11 @@ Kit jobs (after setup):
 |------|----------|---------|
 | `kanban-orchestrator-tick` | every 30m | Review boards, unblock/create tasks → Telegram `origin` |
 | `aegis-stack-health` | 0 9 * * * | Script-only bridge/systemd check (`~/.hermes/scripts/aegis-stack-health.sh`) |
+| `aegis-pm-tick-10m` | every 10m | Script-only PM status (Kanban, bridge, credentials OK/MISSING) → Telegram `origin` — install: `scripts/install-aegis-pm-cron-10m.sh` or `scripts/install-aegis-headless-24-7.sh` |
+
+**Lane O (user systemd):** `aegis-kanban-dispatch.timer` runs `scripts/aegis-pm-orchestrate-once.sh` about every **5m** (D3 sync, deploy script, seed, dispatch, then up to **4** extra dispatch waves every **45s** while `ready>0` and `running<2`). Defaults come from `aegis-kanban-dispatch.service` (`AEGIS_KANBAN_EXTRA_DISPATCH_WAVES`, `AEGIS_KANBAN_WAVE_SLEEP_SEC`); set `AEGIS_KANBAN_EXTRA_DISPATCH_WAVES=0` in a drop-in to match old single-wave behavior. Install: `scripts/install-aegis-kanban-dispatch-timer.sh` or meta-installer above. After upgrading units, run `systemctl --user daemon-reload && systemctl --user restart aegis-kanban-dispatch.timer`.
+
+**Secrets (authorized):** `scripts/aegis-secrets-health.sh`, `scripts/aegis-secrets-maintain.sh`; Hermes skill `aegis-secrets-maintain`.
 
 Requires `/set-home` in Telegram so `origin` delivery has a chat. Gateway must be running (`aegis-dev`).
 
@@ -337,7 +442,7 @@ Create agent cron jobs with **schedule and prompt before flags**:
 ```bash
 hermes cron create 'every 30m' 'Your short prompt here.' \
   --name my-job --skill kanban-orchestrator --deliver origin \
-  --workdir ~/dev/Project/aegis-hackathon-kit
+  --workdir ~/dev/Project/agent-harness
 ```
 
 ## Telegram guardrails (avoid timeouts)

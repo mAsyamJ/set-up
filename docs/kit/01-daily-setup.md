@@ -1,12 +1,12 @@
 # Daily setup (Debian / WSL)
 
-Paths assume `~/dev/Project/aegis-hackathon-kit`.
+Paths assume `~/dev/Project/agent-harness`.
 
 ## First time only
 
 ```bash
-~/dev/Project/aegis-hackathon-kit/scripts/install-systemd-user.sh
-~/dev/Project/aegis-hackathon-kit/scripts/setup-shell.sh
+~/dev/Project/agent-harness/scripts/install-systemd-user.sh
+~/dev/Project/agent-harness/scripts/setup-shell.sh
 source ~/.bashrc
 ```
 
@@ -18,7 +18,7 @@ source ~/.bashrc
 
 ```bash
 aegis-dev
-# or: ~/dev/Project/aegis-hackathon-kit/scripts/start-aegis-dev.sh
+# or: ~/dev/Project/agent-harness/scripts/start-aegis-dev.sh
 ```
 
 This starts `aegis-stack.target` (Kiro bridge on **8787**, then Hermes gateway), polls `/health`, and runs smoke checks.
@@ -26,7 +26,7 @@ This starts `aegis-stack.target` (Kiro bridge on **8787**, then Hermes gateway),
 ## Start Kiro
 
 ```bash
-cd ~/dev/Project/aegis-hackathon-kit
+cd ~/dev/Project/agent-harness
 kiro-cli --agent aegis-orchestrator
 ```
 
@@ -41,7 +41,7 @@ Call @real-hermes/real_hermes_stack_health and summarize the result.
 
 | What | Path |
 |------|------|
-| Kit repo | `~/dev/Project/aegis-hackathon-kit` |
+| Kit repo | `~/dev/Project/agent-harness` |
 | Hermes CLI | `~/.local/bin/hermes` |
 | Hermes config | `~/.hermes/config.yaml` |
 | Kiro agents | `.kiro/agents/` |
@@ -65,7 +65,7 @@ Kiro spawns MCP automatically via [.kiro/agents/aegis-orchestrator.json](../../.
 Manual test:
 
 ```bash
-~/dev/Project/aegis-hackathon-kit/scripts/start-real-hermes-mcp.sh
+~/dev/Project/agent-harness/scripts/start-real-hermes-mcp.sh
 # Ctrl+C if silent
 ```
 
@@ -82,13 +82,13 @@ Do **not** use `telegram-kiro-gateway` (no Hivemind capture). See [07-memory-arc
 
 ```bash
 hivemind status
-~/dev/Project/aegis-hackathon-kit/scripts/verify-hivemind-shared-memory.sh
+~/dev/Project/agent-harness/scripts/verify-hivemind-shared-memory.sh
 ```
 
 If wiki summaries fail (502 in `~/.hermes/hooks/deeplake-wiki.log`):
 
 ```bash
-~/dev/Project/aegis-hackathon-kit/scripts/diagnose-hivemind-capture.sh
+~/dev/Project/agent-harness/scripts/diagnose-hivemind-capture.sh
 ```
 
 Kiro: use `hivemind_search` via `@hivemind` MCP before claiming no prior context.
@@ -98,7 +98,7 @@ Kiro: use `hivemind_search` via `@hivemind` MCP before claiming no prior context
 ### `aegis-dev: command not found`
 
 ```bash
-~/dev/Project/aegis-hackathon-kit/scripts/setup-shell.sh
+~/dev/Project/agent-harness/scripts/setup-shell.sh
 source ~/.bashrc
 ```
 
@@ -107,7 +107,7 @@ source ~/.bashrc
 ```bash
 curl -sf http://127.0.0.1:8787/health
 journalctl --user -u kiro-openai-bridge -n 30 --no-pager -l
-~/dev/Project/aegis-hackathon-kit/scripts/install-systemd-user.sh
+~/dev/Project/agent-harness/scripts/install-systemd-user.sh
 aegis-dev
 ```
 

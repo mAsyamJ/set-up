@@ -1,5 +1,5 @@
 ---
-description: Hermes gateway, Kiro OpenAI bridge, systemd services, and forbidden legacy Telegram gateway.
+description: Hermes gateway, multi-provider OpenAI bridge (Kiro/Cursor), systemd services, and forbidden legacy Telegram gateway.
 alwaysApply: false
 globs:
   - "tools/kiro-openai-bridge/**"
@@ -9,13 +9,20 @@ globs:
   - ".agent-plugins/**"
 ---
 
-# Runtime: Hermes + Kiro
+# Runtime: Hermes + multi-provider bridge
 
 | Component | Role |
 |-----------|------|
 | **Hermes** (`hermes-gateway.service`) | 24/7 Telegram, skills, `/plan`, Kanban |
-| **Kiro bridge** (`kiro-openai-bridge.service`, `127.0.0.1:8787`) | OpenAI-compatible backend for Hermes → `kiro-cli` |
+| **Model bridge** (`kiro-openai-bridge.service`, `127.0.0.1:8787`) | OpenAI-compatible backend for Hermes → Kiro **or** headless Cursor Agent |
 | **Kiro CLI** | Primary coding agent in repo (`kiro-cli --agent aegis-orchestrator`) |
+
+Switch Telegram inference backend:
+
+```bash
+scripts/aegis-model.sh status|kiro|cursor
+# or Telegram: /provider (requires aegis-provider-switch skill)
+```
 
 ## Active services (user systemd)
 
@@ -27,6 +34,7 @@ systemctl --user status hermes-gateway kiro-openai-bridge
 
 - **Do not enable** `telegram-kiro-gateway.service` (bypasses bridge/Hivemind path)
 - Legacy code lives under `tools/archive/telegram-kiro-gateway/` for reference only
+- **Do not expose** `:8787` beyond `127.0.0.1`
 
 ## Smoke check
 
@@ -34,6 +42,7 @@ systemctl --user status hermes-gateway kiro-openai-bridge
 aegis-dev
 # or: scripts/start-aegis-dev.sh
 scripts/verify-hivemind-shared-memory.sh
+curl -sf http://127.0.0.1:8787/v1/admin/provider
 ```
 
 Details: `docs/kit/07-memory-architecture.md`, `docs/kit/02-hermes-24-7.md`

@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 export const WORKSPACE =
-  process.env.AEGIS_WORKSPACE || "/home/asyam/dev/Project/aegis-hackathon-kit";
+  process.env.AEGIS_WORKSPACE || "/home/asyam/dev/Project/agent-harness";
 
 export const HERMES_BIN =
   process.env.HERMES_BIN || "/home/asyam/.local/bin/hermes";

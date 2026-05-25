@@ -57,13 +57,13 @@ Copy [templates/AI_COLLABORATION_LOG.md](templates/AI_COLLABORATION_LOG.md) to y
 Install via:
 
 ```bash
-~/dev/Project/aegis-hackathon-kit/scripts/setup-shell.sh
+~/dev/Project/agent-harness/scripts/setup-shell.sh
 ```
 
 This can set:
 
 ```bash
-git config --global commit.template ~/dev/Project/aegis-hackathon-kit/docs/kit/templates/git-commit-template.txt
+git config --global commit.template ~/dev/Project/agent-harness/docs/kit/templates/git-commit-template.txt
 ```
 
 Template file: [templates/git-commit-template.txt](templates/git-commit-template.txt)

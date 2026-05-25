@@ -10,15 +10,29 @@ UNIT_DST="${AEGIS_SYSTEMD_USER_DIR}"
 
 mkdir -p "$UNIT_DST"
 
-for unit in kiro-openai-bridge.service hermes-gateway.service aegis-stack.target; do
+MODEL_STATE="${AEGIS_REPO_ROOT}/runtime/aegis-model.json"
+if [ ! -f "$MODEL_STATE" ]; then
+  mkdir -p "$(dirname "$MODEL_STATE")"
+  printf '%s\n' '{"defaultModel":"kiro-current","updatedAt":null,"updatedBy":"install"}' > "$MODEL_STATE"
+  echo "Seeded $MODEL_STATE (default: kiro-current)"
+fi
+
+for unit in kiro-openai-bridge.service hermes-gateway.service aegis-stack.target aegis-kanban-dispatch.service wsl-portproxy-refresh.service; do
   src="${UNIT_SRC}/${unit}"
   dst="${UNIT_DST}/${unit}"
   if [ ! -f "$src" ]; then
     echo "ERROR: missing unit file: $src"
     exit 1
   fi
-  ln -sf "$src" "$dst"
-  echo "Linked $dst -> $src"
+  if grep -q '@AGENT_HARNESS_HOME@' "$src" 2>/dev/null; then
+    AEGIS_NODE_DIR="$(dirname "${AEGIS_NODE:-$(command -v node)}")"
+    rm -f "$dst"
+    sed "s|@AGENT_HARNESS_HOME@|${AGENT_HARNESS_HOME}|g; s|@AEGIS_RPC_ROOT@|${AEGIS_RPC_ROOT}|g; s|@AEGIS_NODE@|${AEGIS_NODE:-$(command -v node)}|g; s|@AEGIS_NODE_DIR@|${AEGIS_NODE_DIR}|g" "$src" > "$dst"
+    echo "Installed $dst (from template with paths)"
+  else
+    ln -sf "$src" "$dst"
+    echo "Linked $dst -> $src"
+  fi
 done
 
 systemctl --user daemon-reload
@@ -42,6 +56,23 @@ if [ "$ready" -ne 1 ]; then
 fi
 
 systemctl --user start aegis-stack.target
+
+for skill_name in aegis-provider-switch aegis-secrets-maintain; do
+  PROVIDER_SKILL_SRC="${AEGIS_REPO_ROOT}/docs/kit/templates/hermes-${skill_name}/SKILL.md"
+  PROVIDER_SKILL_DST="${HOME}/.hermes/skills/${skill_name}/SKILL.md"
+  if [ -f "$PROVIDER_SKILL_SRC" ]; then
+    mkdir -p "$(dirname "$PROVIDER_SKILL_DST")"
+    cp "$PROVIDER_SKILL_SRC" "$PROVIDER_SKILL_DST"
+    echo "Installed Hermes skill: $PROVIDER_SKILL_DST"
+  fi
+done
+if systemctl --user is-active --quiet hermes-gateway 2>/dev/null; then
+  systemctl --user restart hermes-gateway.service
+  echo "Restarted hermes-gateway (pick up skills)"
+fi
+
+chmod +x "${AEGIS_REPO_ROOT}/scripts/aegis-secrets-health.sh" \
+  "${AEGIS_REPO_ROOT}/scripts/aegis-secrets-maintain.sh" 2>/dev/null || true
 
 # Legacy path: direct kiro-cli Telegram bot (no Hivemind hooks). Keep disabled.
 if systemctl --user list-unit-files telegram-kiro-gateway.service &>/dev/null; then

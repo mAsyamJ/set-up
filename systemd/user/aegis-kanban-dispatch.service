@@ -1,0 +1,16 @@
+[Unit]
+Description=Aegis Kanban dispatch — Lane O orchestrate once
+After=network-online.target kiro-openai-bridge.service
+
+[Service]
+Type=oneshot
+Environment=AGENT_HARNESS_HOME=@AGENT_HARNESS_HOME@
+Environment=AEGIS_REPO_ROOT=@AGENT_HARNESS_HOME@
+Environment=AEGIS_RPC_ROOT=@AEGIS_RPC_ROOT@
+Environment=AEGIS_WORKSPACE=@AEGIS_RPC_ROOT@
+ExecStart=@AGENT_HARNESS_HOME@/scripts/aegis-pm-orchestrate-once.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

@@ -16,7 +16,7 @@ const server = new McpServer({
 
 server.tool(
   "real_hermes_stack_health",
-  "Fast check: Kiro bridge HTTP health, systemd units, and Hermes gateway status.",
+  "Fast check: model bridge HTTP health, default provider, systemd units, and Hermes gateway status.",
   {},
   async () => {
     const sections: string[] = [];
@@ -28,9 +28,42 @@ server.tool(
       `${KIRO_BRIDGE_URL}/health`
     ], 5000);
     sections.push(
-      `=== Kiro bridge (${KIRO_BRIDGE_URL}) ===\n${bridge.text}`,
+      `=== Model bridge (${KIRO_BRIDGE_URL}) ===\n${bridge.text}`,
       bridge.isError ? "Bridge: UNHEALTHY" : "Bridge: OK"
     );
+
+    if (!bridge.isError) {
+      try {
+        const health = JSON.parse(bridge.text) as {
+          defaultModel?: string;
+          providers?: { cursor?: { configured?: boolean } };
+        };
+        sections.push(
+          `=== Active provider ===\ndefaultModel: ${health.defaultModel ?? "unknown"}`,
+          `cursorConfigured: ${health.providers?.cursor?.configured ? "yes" : "no"}`
+        );
+        if (
+          health.defaultModel === "cursor-composer-2" &&
+          !health.providers?.cursor?.configured
+        ) {
+          sections.push(
+            "WARN: Cursor is the active provider but CURSOR_API_KEY is not configured in ~/.hermes/.env"
+          );
+        }
+      } catch {
+        sections.push("=== Active provider ===\nCould not parse bridge health JSON");
+      }
+    }
+
+    const provider = await runCommand("curl", [
+      "-sf",
+      "--max-time",
+      "3",
+      `${KIRO_BRIDGE_URL}/v1/admin/provider`
+    ], 5000);
+    if (!provider.isError) {
+      sections.push(`=== Provider admin ===\n${provider.text}`);
+    }
 
     const bridgeUnit = await runCommand("systemctl", [
       "--user",

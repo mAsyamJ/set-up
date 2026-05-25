@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKSPACE="${AEGIS_WORKSPACE:-$HOME/dev/Project/aegis-hackathon-kit}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/paths.sh
+source "${SCRIPT_DIR}/lib/paths.sh"
+WORKSPACE="${AEGIS_WORKSPACE:-$AEGIS_RPC_ROOT}"
 cd "$WORKSPACE"
 
 TASK="${*:-status}"

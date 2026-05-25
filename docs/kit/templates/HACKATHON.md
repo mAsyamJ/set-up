@@ -1,7 +1,7 @@
 # HACKATHON — Aegis Protocol (SEABW)
 
 > Copy this file to your **hackathon app repo root** when official build starts.
-> Source: `aegis-hackathon-kit/docs/kit/templates/HACKATHON.md`
+> Source: `agent-harness/docs/kit/templates/HACKATHON.md`
 
 ## Team & links
 
@@ -41,7 +41,7 @@
 ## AI collaboration proof
 
 - Log: [docs/AI_COLLABORATION_LOG.md](docs/AI_COLLABORATION_LOG.md)
-- Guide: [aegis-hackathon-kit/docs/kit/05-ai-collaboration.md](https://github.com/your-org/aegis-hackathon-kit/blob/main/docs/kit/05-ai-collaboration.md)
+- Guide: [agent-harness/docs/kit/05-ai-collaboration.md](https://github.com/your-org/agent-harness/blob/main/docs/kit/05-ai-collaboration.md)
 
 ## Do not overclaim
 

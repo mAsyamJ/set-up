@@ -1,0 +1,13 @@
+{
+  "harness": "agent-harness",
+  "version": "1.0.0",
+  "description": "Canonical skill registry — project enables subset via .harness/skills.json",
+  "skills": [
+    "grill-me", "to-prd", "to-issues", "tdd", "improve-codebase-architecture",
+    "systematic-debugging", "handoff", "prototype", "hermes-kiro-runtime",
+    "rpc-gateway", "preflight-decoder", "policy-engine", "adapter-layer",
+    "chainlink-price", "approval-risk", "simulation", "ai-analysis",
+    "opsrisk-dashboard", "smart-contract-registry", "docker-dev",
+    "vercel-deploy", "base-sepolia-deploy", "qa-demo", "opensrc-research"
+  ]
+}

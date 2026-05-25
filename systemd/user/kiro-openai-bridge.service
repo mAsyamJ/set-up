@@ -1,18 +1,19 @@
 [Unit]
-Description=Kiro OpenAI-Compatible Bridge for Hermes
+Description=Kiro OpenAI-Compatible Bridge for Hermes (127.0.0.1 only)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/asyam/dev/Project/aegis-hackathon-kit/tools/kiro-openai-bridge
-Environment=AEGIS_WORKSPACE=/home/asyam/dev/Project/aegis-hackathon-kit
-Environment=AEGIS_REPO_PATH=/home/asyam/dev/Project/aegis-hackathon-kit
-Environment=PORT=8787
-Environment=PATH=/home/asyam/.nvm/versions/node/v22.22.2/bin:/home/asyam/.local/bin:/home/asyam/.cargo/bin:/mnt/d/Kiro/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/home/asyam/.nvm/versions/node/v22.22.2/bin/node server.js
-Restart=on-failure
+WorkingDirectory=@AGENT_HARNESS_HOME@/tools/kiro-openai-bridge
+Environment=AGENT_HARNESS_HOME=@AGENT_HARNESS_HOME@
+Environment=AEGIS_WORKSPACE=@AEGIS_RPC_ROOT@
+Environment=AEGIS_REPO_PATH=@AGENT_HARNESS_HOME@
+Environment=AEGIS_MODEL_STATE=@AGENT_HARNESS_HOME@/runtime/aegis-model.json
+Environment=PATH=@AEGIS_NODE_DIR@:/home/asyam/.local/bin:/usr/bin:/bin
+ExecStart=@AEGIS_NODE@ server.js
+Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=aegis-stack.target
+WantedBy=default.target

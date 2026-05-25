@@ -1,0 +1,25 @@
+{
+  "enabled": true,
+  "vaultPath": "~/dev/Project/_vaults/agentic-engineering",
+  "projectNotePath": "01-Projects/PROJECT_DISPLAY/_index.md",
+  "projectSlug": "PROJECT_SLUG",
+  "projectDisplayName": "PROJECT_DISPLAY",
+  "writePolicy": {
+    "allowCreateNotes": true,
+    "allowUpdateIndex": true,
+    "allowModifyExistingNotes": false,
+    "requireFrontmatter": true
+  },
+  "sync": {
+    "runSummaries": true,
+    "decisions": true,
+    "research": true,
+    "tasks": "summary-only",
+    "traces": "summary-only"
+  },
+  "rag": {
+    "includeInProjectRetrieval": true,
+    "includeFolders": [],
+    "excludeFolders": ["99-Archive", "00-Inbox/unsorted"]
+  }
+}

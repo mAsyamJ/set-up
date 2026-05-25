@@ -1,0 +1,9 @@
+---
+description: Project boundaries — product code stays in manifest paths.product
+alwaysApply: true
+---
+
+# Project boundaries
+
+- Product code lives only under paths declared in `.harness/project.manifest.json`.
+- Harness changes belong in `$AGENT_HARNESS_HOME`, not the project repo root (embedded mode: `../..`).

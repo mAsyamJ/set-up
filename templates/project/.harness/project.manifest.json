@@ -1,0 +1,36 @@
+{
+  "schema": "agent-harness.project.v1",
+  "project": {
+    "name": "example-app",
+    "type": "generic",
+    "root": ".",
+    "description": "Example project using agent-harness"
+  },
+  "harness": {
+    "mode": "embedded",
+    "harnessRootEnv": "AGENT_HARNESS_HOME",
+    "defaultHarnessRoot": "../.."
+  },
+  "paths": {
+    "product": ["src"],
+    "docs": ["docs"],
+    "tasks": ".harness/tasks",
+    "state": ".harness/state"
+  },
+  "commands": {
+    "dev": "npm run dev",
+    "typecheck": "npm run typecheck",
+    "test": "npm test"
+  },
+  "agents": {
+    "enabled": ["orchestrator", "backend", "frontend", "qa"]
+  },
+  "skills": {
+    "enabled": ["systematic-debugging", "tdd"]
+  },
+  "rules": {
+    "noSecrets": true,
+    "requireTaskFile": true,
+    "requireVerification": true
+  }
+}

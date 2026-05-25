@@ -33,3 +33,46 @@ npm-debug.log*
 # Local runtime / cache
 .opensrc-cache/
 *.local
+runtime/aegis-model.json
+
+# Foundry dependencies / embedded git repos
+projects/aegis-rpc/contracts/lib/
+**/contracts/lib/
+
+# Node / build artifacts
+node_modules/
+dist/
+.next/
+.turbo/
+.cache/
+.env
+.env.*
+!.env.example
+
+# Embedded Git repos / external references
+examples/frontend-reference/frontend/next-shadcn-admin-dashboard/
+examples/frontend-reference/frontend/sentinel-preflight/
+
+# Aegis project has its own repo; don't commit as nested git repo
+projects/aegis-rpc/
+
+# Foundry dependencies
+**/contracts/lib/
+
+# Node / build artifacts
+node_modules/
+dist/
+.next/
+.turbo/
+.cache/
+
+# Local state / databases
+*.sqlite
+*.sqlite3
+.harness/state/
+**/.harness/state/
+
+# Env files
+.env
+.env.*
+!.env.example

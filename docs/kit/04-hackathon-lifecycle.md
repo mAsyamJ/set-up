@@ -18,7 +18,7 @@ End-to-end playbook for SEABW: from kit prep through production deploy and submi
 
 ## Phase 0 — Pre-build (kit repo)
 
-**Repo:** `~/dev/Project/aegis-hackathon-kit`
+**Repo:** `~/dev/Project/agent-harness`
 
 Allowed: docs, scripts, `.kiro`, MCP bridge, systemd units.
 
@@ -49,7 +49,7 @@ npx create-next-app@latest . \
 Copy kit assets:
 
 ```bash
-KIT=~/dev/Project/aegis-hackathon-kit
+KIT=~/dev/Project/agent-harness
 cp -r "$KIT/.kiro" .
 cp "$KIT/AGENTS.md" .
 mkdir -p docs

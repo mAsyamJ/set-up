@@ -1,0 +1,13 @@
+[Unit]
+Description=Hermes Kanban Dashboard (port 9119)
+After=hermes-gateway.service
+PartOf=aegis-stack.target
+
+[Service]
+Type=simple
+ExecStart=/home/asyam/.local/bin/hermes dashboard --no-open --skip-build --host 0.0.0.0 --insecure
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=aegis-stack.target

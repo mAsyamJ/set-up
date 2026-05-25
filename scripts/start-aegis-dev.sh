@@ -37,7 +37,43 @@ for _ in $(seq 1 30); do
 done
 if [ "$bridge_ok" -eq 1 ]; then
   pass "kiro-openai-bridge health"
-  curl -sf "${KIRO_BRIDGE_URL}/health" 2>/dev/null || true
+  health_json="$(curl -sf "${KIRO_BRIDGE_URL}/health" 2>/dev/null || true)"
+  echo "$health_json"
+  if command -v python3 >/dev/null 2>&1 && [ -n "$health_json" ]; then
+    default_model="$(printf '%s' "$health_json" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('defaultModel','unknown'))" 2>/dev/null || echo unknown)"
+    echo "Default model: ${default_model}"
+    hermes_model=""
+    if [ -f "${HOME}/.hermes/config.yaml" ]; then
+      hermes_model="$(python3 -c "
+import re, pathlib
+text = pathlib.Path('${HOME}/.hermes/config.yaml').read_text(encoding='utf-8', errors='ignore')
+m = re.search(r'^model:\\s*\\n(?:\\s+\\w+:.*\\n)*?\\s+default:\\s*(\\S+)', text, re.M)
+print(m.group(1) if m else '')
+" 2>/dev/null || true)"
+    fi
+    if [ -n "$hermes_model" ] && [ "$hermes_model" != "$default_model" ]; then
+      echo "WARN Hermes config model (${hermes_model}) != bridge default (${default_model})"
+      if [ -x "${AEGIS_REPO_ROOT}/scripts/aegis-model.sh" ]; then
+        if [ "$hermes_model" = "kiro-current" ] || [ "$hermes_model" = "cursor-composer-2" ]; then
+          echo "Syncing bridge default to ${hermes_model}..."
+          if [ "$hermes_model" = "cursor-composer-2" ]; then
+            "${AEGIS_REPO_ROOT}/scripts/aegis-model.sh" cursor >/dev/null 2>&1 || true
+          else
+            "${AEGIS_REPO_ROOT}/scripts/aegis-model.sh" kiro >/dev/null 2>&1 || true
+          fi
+          health_json="$(curl -sf "${KIRO_BRIDGE_URL}/health" 2>/dev/null || true)"
+          default_model="$(printf '%s' "$health_json" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('defaultModel','unknown'))" 2>/dev/null || echo unknown)"
+          echo "Bridge default after sync: ${default_model}"
+        fi
+      fi
+    fi
+    if [ "$default_model" = "cursor-composer-2" ]; then
+      cursor_ok="$(printf '%s' "$health_json" | python3 -c "import json,sys; d=json.load(sys.stdin); print('1' if d.get('providers',{}).get('cursor',{}).get('configured') else '0')" 2>/dev/null || echo 0)"
+      if [ "$cursor_ok" != "1" ]; then
+        bad "Cursor selected but not configured (run scripts/setup-cursor-bridge-auth.sh or set CURSOR_API_KEY)"
+      fi
+    fi
+  fi
   echo
 else
   bad "kiro-openai-bridge not reachable (check: journalctl --user -u kiro-openai-bridge -n 30)"

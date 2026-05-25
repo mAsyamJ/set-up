@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Harness CLI entrypoint
+set -euo pipefail
+HARNESS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export AGENT_HARNESS_HOME="${AGENT_HARNESS_HOME:-$HARNESS_ROOT}"
+CMD="${1:-}"
+shift || true
+case "$CMD" in
+  doctor)         exec "$HARNESS_ROOT/cli/commands/doctor.sh" "$@" ;;
+  status)         exec "$HARNESS_ROOT/cli/commands/status.sh" "$@" ;;
+  smoke)          exec "$HARNESS_ROOT/cli/commands/smoke.sh" "$@" ;;
+  sync-cursor)    exec "$HARNESS_ROOT/cli/commands/sync-cursor.sh" "$@" ;;
+  sync-skills)    exec "$HARNESS_ROOT/cli/commands/sync-skills.sh" "$@" ;;
+  sync-kanban)    exec "$HARNESS_ROOT/cli/commands/sync-kanban.sh" "$@" ;;
+  new-task)       exec "$HARNESS_ROOT/cli/commands/new-task.sh" "$@" ;;
+  verify-task)    exec "$HARNESS_ROOT/cli/commands/verify-task.sh" "$@" ;;
+  init-project)   exec "$HARNESS_ROOT/cli/commands/init-project.sh" "$@" ;;
+  link-project)   exec "$HARNESS_ROOT/cli/commands/link-project.sh" "$@" ;;
+  index-project)  exec node --import tsx "$HARNESS_ROOT/tools/gateway/index-project.ts" "$@" ;;
+  run-task)
+    if [ -n "${2:-}" ] && echo "$2" | grep -q '\.md$'; then
+      exec node --import tsx "$HARNESS_ROOT/tools/gateway/run-supervisor.ts" "$@"
+    fi
+    exec "$HARNESS_ROOT/cli/commands/run-task.sh" "$@"
+    ;;
+  run-report)     exec node --import tsx "$HARNESS_ROOT/tools/gateway/run-report-cli.ts" "$@" ;;
+  start-mcp)      exec node --import tsx "$HARNESS_ROOT/runtime/mcp/harness-mcp-server/src/server.ts" "$@" ;;
+  start-a2a)      exec node --import tsx "$HARNESS_ROOT/runtime/a2a/harness-a2a-server/src/server.ts" "$@" ;;
+  obsidian)
+    SUB="${1:-}"; shift || true
+    exec node --import tsx "$HARNESS_ROOT/tools/gateway/obsidian-cli.ts" "$SUB" "$@"
+    ;;
+  start-hermes-doctor)
+    PROJECT="${1:-${AEGIS_RPC_ROOT:-$HARNESS_ROOT/projects/aegis-rpc}}"
+    "$HARNESS_ROOT/cli/commands/doctor.sh" "$PROJECT"
+    node --import tsx "$HARNESS_ROOT/tools/gateway/index-project.ts" "$PROJECT"
+    ;;
+  *)
+    echo "Usage: harness {doctor|status|smoke|index-project|obsidian|start-a2a|start-mcp|run-task|...} <project> [args]"
+    exit 1
+    ;;
+esac

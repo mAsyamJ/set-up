@@ -35,7 +35,7 @@ hivemind install
 Verify:
 
 ```bash
-~/dev/Project/aegis-hackathon-kit/scripts/verify-hivemind-shared-memory.sh
+~/dev/Project/agent-harness/scripts/verify-hivemind-shared-memory.sh
 ```
 
 ## Telegram path
@@ -62,7 +62,7 @@ Common failures:
 Diagnose:
 
 ```bash
-~/dev/Project/aegis-hackathon-kit/scripts/diagnose-hivemind-capture.sh
+~/dev/Project/agent-harness/scripts/diagnose-hivemind-capture.sh
 ```
 
 Set OpenRouter key in `~/.hermes/.env` or environment if wiki worker cannot summarize.

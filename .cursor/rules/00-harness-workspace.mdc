@@ -1,0 +1,10 @@
+---
+description: Agent harness workspace — generic rules; product rules live under projects/
+alwaysApply: true
+---
+
+# Harness workspace
+
+- Harness root is **generic** — runtime, CLI, Hermes/Kiro bridge, `docs/kit/`.
+- Product specs live under `projects/<name>/` (default: `projects/aegis-rpc/`).
+- When building a product, open that project folder and read `.harness/project-context.md` + `AGENTS.md`.

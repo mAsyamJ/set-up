@@ -1,0 +1,10 @@
+---
+description: Security — no secrets in commits or chat
+alwaysApply: true
+---
+
+# Security
+
+- Never commit `.env`, keys, or seed phrases.
+- Bridge binds `127.0.0.1` only.
+- Use `.env.example` for documentation.

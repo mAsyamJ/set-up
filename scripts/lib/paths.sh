@@ -1,7 +1,16 @@
-# Shared paths for Aegis hackathon kit scripts. Source from bash: . "$(dirname "$0")/lib/paths.sh"
-AEGIS_REPO_ROOT="${AEGIS_REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
-AEGIS_WORKSPACE="${AEGIS_WORKSPACE:-$AEGIS_REPO_ROOT}"
-export AEGIS_REPO_ROOT AEGIS_WORKSPACE
+# Shared paths for agent-harness scripts. Source from bash: . "$(dirname "$0")/lib/paths.sh"
+
+# Harness root (legacy alias: AEGIS_REPO_ROOT)
+_HARNESS_DEFAULT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+AGENT_HARNESS_HOME="${AGENT_HARNESS_HOME:-${AEGIS_REPO_ROOT:-$_HARNESS_DEFAULT}}"
+AEGIS_REPO_ROOT="${AEGIS_REPO_ROOT:-$AGENT_HARNESS_HOME}"
+
+AEGIS_PROJECTS_ROOT="${AEGIS_PROJECTS_ROOT:-$AGENT_HARNESS_HOME/projects}"
+AEGIS_DEFAULT_PROJECT="${AEGIS_DEFAULT_PROJECT:-aegis-rpc}"
+AEGIS_RPC_ROOT="${AEGIS_RPC_ROOT:-$AEGIS_PROJECTS_ROOT/$AEGIS_DEFAULT_PROJECT}"
+
+AEGIS_WORKSPACE="${AEGIS_WORKSPACE:-$AEGIS_RPC_ROOT}"
+export AGENT_HARNESS_HOME AEGIS_REPO_ROOT AEGIS_PROJECTS_ROOT AEGIS_DEFAULT_PROJECT AEGIS_RPC_ROOT AEGIS_WORKSPACE
 
 if [ -z "${AEGIS_NODE:-}" ]; then
   if [ -x "${HOME}/.nvm/versions/node/v22.22.2/bin/node" ]; then
@@ -15,8 +24,8 @@ fi
 export AEGIS_NODE
 
 AEGIS_TSX="${AEGIS_TSX:-$(dirname "$AEGIS_NODE")/tsx}"
-if [ ! -x "$AEGIS_TSX" ] && [ -x "${AEGIS_REPO_ROOT}/tools/real-hermes-mcp/node_modules/.bin/tsx" ]; then
-  AEGIS_TSX="${AEGIS_REPO_ROOT}/tools/real-hermes-mcp/node_modules/.bin/tsx"
+if [ ! -x "$AEGIS_TSX" ] && [ -x "${AGENT_HARNESS_HOME}/tools/real-hermes-mcp/node_modules/.bin/tsx" ]; then
+  AEGIS_TSX="${AGENT_HARNESS_HOME}/tools/real-hermes-mcp/node_modules/.bin/tsx"
 fi
 export AEGIS_TSX
 
@@ -26,6 +35,11 @@ export HERMES_BIN
 KIRO_BRIDGE_PORT="${KIRO_BRIDGE_PORT:-8787}"
 KIRO_BRIDGE_URL="http://127.0.0.1:${KIRO_BRIDGE_PORT}"
 export KIRO_BRIDGE_PORT KIRO_BRIDGE_URL
+
+AEGIS_MODEL_STATE="${AEGIS_MODEL_STATE:-${AGENT_HARNESS_HOME}/runtime/aegis-model.json}"
+CURSOR_MODEL="${CURSOR_MODEL:-composer-2}"
+CURSOR_BRIDGE_MODE="${CURSOR_BRIDGE_MODE:-agent}"
+export AEGIS_MODEL_STATE CURSOR_MODEL CURSOR_BRIDGE_MODE
 
 AEGIS_SYSTEMD_USER_DIR="${AEGIS_SYSTEMD_USER_DIR:-${HOME}/.config/systemd/user}"
 export AEGIS_SYSTEMD_USER_DIR

@@ -1,0 +1,12 @@
+{
+  "allowedShellCommands": [
+    "pnpm test",
+    "pnpm typecheck",
+    "pnpm lint",
+    "npm test",
+    "npm run typecheck",
+    "npm run lint",
+    "git status",
+    "git diff"
+  ]
+}

@@ -58,7 +58,7 @@ else
   pass "telegram-kiro-gateway: inactive (expected)"
 fi
 
-BRIDGE_CTX="${AEGIS_REPO_ROOT}/scripts/lib/hivemind-bridge-context.js"
+BRIDGE_CTX="${AEGIS_REPO_ROOT}/scripts/lib/hivemind-bridge-context.cjs"
 if [[ -f "$BRIDGE_CTX" ]]; then
   pass "bridge context module present"
   node "$BRIDGE_CTX" | head -5 >/dev/null && pass "bridge context module runs"

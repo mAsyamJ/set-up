@@ -17,7 +17,7 @@ Agent configs live in [.kiro/agents/](../../.kiro/agents/). Steering docs: [.kir
 Start from kit or app repo root:
 
 ```bash
-cd ~/dev/Project/aegis-hackathon-kit   # or your hackathon app
+cd ~/dev/Project/agent-harness   # or your hackathon app
 kiro-cli --agent aegis-orchestrator
 ```
 
