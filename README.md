@@ -1,10 +1,18 @@
 # Agent Harness OS
 
-**Hermes** is the 24/7 orchestrator (Telegram, cron, Kanban dispatch). **Agent Harness OS** is the typed control plane (Tool Gateway, RAG, Obsidian, MCP, A2A, supervisor). **Cursor** and **Kiro** implement work via a local bridge at `127.0.0.1:8787`.
+**Operate from Hermes only.** Talk to Hermes on Telegram (or Hermes CLI); Hermes routes every goal through **Agent Harness OS** — RAG, tasks, Obsidian, Kanban, and typed tools. Hermes never "becomes" Harness; after bootstrap it **uses** Harness as the execution engine.
 
-Attach Harness to any codebase with a `.harness/` adapter — no harness code changes required. Product specs live under `projects/<name>/`; the harness root stays generic.
+| Layer | Role |
+|-------|------|
+| **Hermes** | 24/7 orchestrator — Telegram, cron, Kanban dispatch, Hivemind |
+| **Harness OS** | Control plane — Tool Gateway, RAG, Obsidian, MCP, A2A, supervisor |
+| **Cursor / Kiro** | Implementation workers via bridge `127.0.0.1:8787` |
 
-**Default product:** [Aegis RPC](projects/aegis-rpc/) · **Registry:** [projects/registry.json](projects/registry.json)
+Attach Harness to any codebase with a `.harness/` adapter. Product code lives under `projects/<name>/`; marketing and business work uses `projects/ops/`.
+
+**Quick start:** `scripts/hermes-bootstrap-harness.sh` → Telegram `/reset`
+
+**Registry:** [projects/registry.json](projects/registry.json) · **Default product:** [Aegis RPC](projects/aegis-rpc/)
 
 ---
 
@@ -12,7 +20,7 @@ Attach Harness to any codebase with a `.harness/` adapter — no harness code ch
 
 End-to-end loop from human intent to verified output:
 
-1. **Human** coordinates via Telegram (Hermes), Cursor IDE (Harness MCP), or `cli/harness`.
+1. **Human** coordinates primarily via **Telegram (Hermes)**; Cursor IDE (Harness MCP) and `cli/harness` are secondary surfaces for implementation.
 2. **Hermes gateway** (systemd) holds skills, cron jobs, Kanban boards, Hivemind MCP, and **Harness MCP** (after `sync-hermes`).
 3. **Work** is represented as Hermes Kanban cards (per-project board) plus markdown in `.harness/tasks/{backlog,active,review,done,blocked}/`.
 4. **Lane O** (systemd timer ~5m) seeds backlog and opens the dispatch gate; **Lane B** runs Kanban workers through the bridge into `AEGIS_WORKSPACE`.
@@ -31,8 +39,8 @@ flowchart TB
     GW[hermes-gateway]
     KB[Kanban per project]
     CRON[cron Lane A]
-    SKILLS[agent-harness-os skill]
-    HMCP[harness MCP]
+    SKILLS[hermes-harness-operator]
+    HMCP[harness MCP dynamic]
   end
   subgraph harness [Harness OS]
     REG[projects/registry.json]
@@ -86,7 +94,7 @@ When asked "what can this stack do?", describe **both layers**. Hermes is the al
 
 | Capability | Hermes (platform) | Harness OS (control plane) |
 |------------|-------------------|----------------------------|
-| Chat / Telegram | Yes | Augments via `agent-harness-os` + `harness-mcp` skills |
+| Chat / Telegram | Yes | `hermes-harness-operator` + Harness MCP (mandatory for project work) |
 | Kanban boards | Native CLI + UI | Per-project board in manifest + [registry](projects/registry.json) |
 | Cron / 24/7 timers | Yes | `start-hermes-doctor`, PM scripts (Lanes A/O) |
 | Models / native tools | Yes | Tool Gateway replaces raw shell for project work |
@@ -94,7 +102,7 @@ When asked "what can this stack do?", describe **both layers**. Hermes is the al
 | Obsidian vault | No | `obsidian init/capture/adr/run-summary` |
 | Typed task lifecycle | Partial | `.harness/tasks/` + MCP task tools |
 | A2A delegation | No | Local server `:8790` (security, qa agents) |
-| Multi-project switch | No | `switch-project`, registry, per-board dispatch |
+| Multi-project switch | No | `harness_switch_project` MCP tool, `switch-project` CLI, `active-project.env` |
 | Policy / audit trail | No | R0–R5, SQLite traces, run reports |
 
 ### Memory layers (do not conflate)
@@ -112,13 +120,14 @@ Vault: `~/dev/Project/_vaults/agentic-engineering/` — shared across projects, 
 
 ## Multi-project operation
 
-Three products are registered today. Each has its own Kanban board, RAG index, Obsidian project note, and manifest.
+Four registry entries today — three product codebases plus **Agentic Ops** for marketing/business. Each has its own Kanban board, RAG index, Obsidian project note, and manifest.
 
 | Project | Path | Kanban board | Display name |
 |---------|------|--------------|--------------|
 | Aegis RPC | `projects/aegis-rpc/` | `aegis-hackathon` | Aegis RPC |
 | KreditAgent | `projects/kreditagent/` | `kreditagent-hackathon` | KreditAgent |
 | RetroPick | `projects/retropick/` | `retropick-v1` | RetroPick |
+| Agentic Ops | `projects/ops/` | `agentic-ops` | Marketing / business / GTM |
 
 Registry: [projects/registry.json](projects/registry.json). Kanban workspace must use **absolute paths**: `dir:/home/.../projects/<name>`.
 
@@ -128,10 +137,20 @@ Registry: [projects/registry.json](projects/registry.json). Kanban workspace mus
 cli/harness switch-project kreditagent
 # Sets: AEGIS_RPC_ROOT, AEGIS_WORKSPACE, AEGIS_KANBAN_BOARD
 # Persists: .harness/state/active-project.env
-# Re-merges Hermes harness MCP; restarts bridge with new workspace
+# Runs: sync-hermes + merge harness MCP (use --no-restart to skip bridge restart)
 ```
 
-After switching, verify bridge workspace:
+From Telegram (Hermes MCP or safe CLI):
+
+```bash
+# MCP tools (no gateway restart):
+#   harness_list_projects
+#   harness_switch_project { "slug": "kreditagent" }
+
+scripts/hermes-harness-cli.sh switch-project kreditagent
+```
+
+Harness MCP re-reads `active-project.env` on **each tool call** — Hermes can switch projects mid-conversation without restarting `hermes-gateway`.
 
 ```bash
 curl -sf http://127.0.0.1:8787/health | python3 -m json.tool
@@ -148,12 +167,14 @@ curl -sf http://127.0.0.1:8787/health | python3 -m json.tool
 | [scripts/import-external-project.sh](scripts/import-external-project.sh) | Copy external repo into `projects/<slug>` |
 | [scripts/kanban-init-project-board.sh](scripts/kanban-init-project-board.sh) | Create board + seed smoke task |
 | [scripts/kreditagent-opensrc-cache.sh](scripts/kreditagent-opensrc-cache.sh) | OpenSrc paths for KreditAgent study repos (no vendored `external/`) |
+| [scripts/hermes-bootstrap-harness.sh](scripts/hermes-bootstrap-harness.sh) | One-shot Hermes ↔ Harness wiring for full registry |
 
 Kanban UI (per board):
 
 - Aegis: http://127.0.0.1:9119/kanban?board=aegis-hackathon
 - KreditAgent: http://127.0.0.1:9119/kanban?board=kreditagent-hackathon
 - RetroPick: http://127.0.0.1:9119/kanban?board=retropick-v1
+- Agentic Ops: http://127.0.0.1:9119/kanban?board=agentic-ops
 
 Create a task (always use absolute workspace):
 
@@ -169,6 +190,39 @@ Details: [docs/08-hermes-integration.md](docs/08-hermes-integration.md) · [docs
 
 ---
 
+## Operate from Hermes only
+
+Hermes never "becomes" Harness OS — it **uses** Harness as the execution engine. After bootstrap, you only talk to Hermes (Telegram); Hermes routes work through Harness tools.
+
+```bash
+scripts/hermes-bootstrap-harness.sh    # sync skills, index fleet, validate, restart gateway
+# Telegram: /reset
+```
+
+### Goal routing (Hermes → Harness)
+
+| Your goal | Hermes switches to | Tools |
+|-----------|-------------------|-------|
+| Product code | `aegis-rpc`, `kreditagent`, `retropick` | `harness_switch_project`, RAG, Kanban dispatch |
+| Marketing / business / GTM | `ops` | Obsidian vault, ops RAG, board `agentic-ops` |
+| Org memory | (any) | `hivemind_search` |
+| Fleet health | (read-only) | `hermes-harness-cli validate-all` |
+
+Hermes skills: `hermes-harness-operator` (always-on routing), `agent-harness-os`, `harness-mcp`.
+
+MCP tools include `harness_list_projects` and `harness_switch_project` — switch projects **without** gateway restart (reads `.harness/state/active-project.env` each call).
+
+Telegram-safe CLI:
+
+```bash
+scripts/hermes-harness-cli.sh list-projects
+scripts/hermes-harness-cli.sh switch-project ops
+scripts/hermes-harness-cli.sh validate-all
+scripts/hermes-harness-cli.sh ops obsidian capture "Launch plan draft"
+```
+
+---
+
 ## Hermes orchestration
 
 Hermes remains the **external 24/7 orchestrator**. Harness augments it with skills, MCP, and PM scripts — it does not replace Hermes.
@@ -176,7 +230,7 @@ Hermes remains the **external 24/7 orchestrator**. Harness augments it with skil
 ```txt
 Telegram → hermes-gateway → bridge :8787 → Cursor/Kiro
                 ↓
-         ~/.hermes/skills/  (agent-harness-os, harness-mcp, …)
+         ~/.hermes/skills/  (hermes-harness-operator, agent-harness-os, harness-mcp, …)
          mcp_servers.hivemind + mcp_servers.harness
          Lanes A / O / B
 ```
@@ -188,8 +242,8 @@ Telegram → hermes-gateway → bridge :8787 → Cursor/Kiro
 | **Telegram** | `/plan`, `/provider`, coordination; heavy work via Kanban not long chat |
 | **Kanban** | Per-project boards, dispatch, complete/block lifecycle |
 | **Cron (Lane A)** | Script-only PM status → Telegram every ~10m (no LLM) |
-| **Skills** | `agent-harness-os` (capability map), `harness-mcp` (tool reference) |
-| **Harness MCP** | `harness_project_inspect`, `harness_rag_search`, task tools, etc. |
+| **Skills** | `hermes-harness-operator`, `agent-harness-os`, `harness-mcp` |
+| **Harness MCP** | `harness_list_projects`, `harness_switch_project`, RAG, task tools |
 | **Safe CLI** | [scripts/hermes-harness-cli.sh](scripts/hermes-harness-cli.sh) — allowlisted subcommands only |
 
 ### Sync harness into Hermes (required after upgrade)
@@ -200,7 +254,7 @@ systemctl --user restart hermes-gateway
 # Telegram: /reset
 ```
 
-Installs: `~/.hermes/skills/agent-harness-os/`, `harness-mcp/`, `mcp_servers.harness` in config, memory rules.
+Installs: `~/.hermes/skills/hermes-harness-operator/`, `agent-harness-os/`, `harness-mcp/`, `mcp_servers.harness` in config, memory rules.
 
 One-shot post-upgrade: `scripts/post-harness-upgrade-sync.sh projects/aegis-rpc`
 
@@ -208,11 +262,13 @@ One-shot post-upgrade: `scripts/post-harness-upgrade-sync.sh projects/aegis-rpc`
 
 | Lane | Trigger | Script | What it does |
 |------|---------|--------|--------------|
-| **A** | Hermes cron ~10m | `aegis-pm-tick-10m.sh` | Board stats, bridge/gateway health, secrets check → Telegram (no LLM) |
+| **A** | Hermes cron ~10m | `aegis-pm-tick-10m.sh` | Stats on **all registry boards**, bridge/gateway health → Telegram (no LLM) |
 | **O** | systemd timer ~5m | `aegis-pm-orchestrate-once.sh` | D3 deploy gate (aegis only), seed backlog, multi-board dispatch |
 | **B** | Kanban ready work | `aegis-kanban-dispatch-once.sh` | `hermes kanban dispatch --max 2` via bridge when healthy |
 
 Install lanes A + O: `scripts/install-aegis-headless-24-7.sh`
+
+Fleet doctor cron (optional, every 6h): [runtime/hermes/schedules/fleet-doctor.cron.md](runtime/hermes/schedules/fleet-doctor.cron.md) — runs `validate-all` across registry.
 
 When `AEGIS_KANBAN_BOARD` is unset, dispatch iterates **all registry boards** with ready work.
 
@@ -221,20 +277,24 @@ When `AEGIS_KANBAN_BOARD` is unset, dispatch iterates **all registry boards** wi
 When MCP is unavailable, Hermes may call:
 
 ```bash
+scripts/hermes-harness-cli.sh list-projects
+scripts/hermes-harness-cli.sh switch-project kreditagent
+scripts/hermes-harness-cli.sh validate-all
 scripts/hermes-harness-cli.sh projects/kreditagent doctor
 scripts/hermes-harness-cli.sh projects/kreditagent run-task rag.search '{"query":"x402"}'
-scripts/hermes-harness-cli.sh projects/kreditagent obsidian capture "Research note"
+scripts/hermes-harness-cli.sh ops obsidian capture "Launch plan draft"
 ```
 
-Allowlist: `doctor`, `status`, `index-project`, `start-hermes-doctor`, read-only `run-task` tools, `obsidian init|capture|run-summary|adr`. No shell, no deploy, no secrets.
+Allowlist: `list-projects`, `switch-project`, `validate-all`, `doctor`, `status`, `index-project`, `start-hermes-doctor`, read-only `run-task` tools, `obsidian init|capture|run-summary|adr`. No shell, no deploy, no secrets.
 
 ### Telegram acceptance test
 
-1. `cli/harness sync-hermes projects/aegis-rpc`
-2. Restart `hermes-gateway`
-3. Send `/reset` in Telegram
-4. Ask: *"What are your harness capabilities?"*
-5. **Pass:** response includes MCP, RAG, Obsidian vault, A2A, CLI — not only generic Nous skills
+1. `scripts/hermes-bootstrap-harness.sh` (or `cli/harness sync-hermes projects/aegis-rpc` + restart gateway)
+2. Send `/reset` in Telegram
+3. Ask: *"What are your harness capabilities?"*
+4. **Pass:** response includes MCP, RAG, Obsidian vault, project switch, Kanban — not only generic Nous skills
+5. Ask: *"Switch to ops and capture a launch note"* — **Pass:** uses `harness_switch_project` or safe CLI, not ad-hoc file edits
+6. Ask: *"Validate the fleet"* — **Pass:** runs `validate-all` or equivalent doctor sweep
 
 After `/provider cursor` or `/provider kiro`, always send **`/reset`** before the next long task.
 
@@ -259,6 +319,8 @@ bash scripts/harness-validate-all-projects.sh  # all registry entries
 hermes kanban --board aegis-hackathon stats
 hermes kanban --board kreditagent-hackathon stats
 hermes kanban --board retropick-v1 stats
+hermes kanban --board agentic-ops stats
+scripts/hermes-harness-cli.sh validate-all
 curl -sf http://127.0.0.1:8787/health       # verify workspace field
 systemctl --user is-active hermes-gateway kiro-openai-bridge
 ```
@@ -290,6 +352,8 @@ bash scripts/harness-validate-all-projects.sh
 hermes kanban --board aegis-hackathon stats
 hermes kanban --board kreditagent-hackathon stats
 hermes kanban --board retropick-v1 stats
+hermes kanban --board agentic-ops stats
+scripts/hermes-harness-cli.sh validate-all
 curl -sf http://127.0.0.1:8787/health | python3 -c "import sys,json; d=json.load(sys.stdin); print('workspace:', d.get('workspace'))"
 ```
 
@@ -300,9 +364,8 @@ curl -sf http://127.0.0.1:8787/health | python3 -c "import sys,json; d=json.load
 ### 2 — Switch project and implement from Cursor
 
 ```bash
-cli/harness switch-project kreditagent
-cli/harness sync-hermes projects/kreditagent
-cli/harness index-project projects/kreditagent
+cli/harness switch-project kreditagent   # includes sync-hermes + bridge workspace
+cli/harness index-project projects/kreditagent   # if RAG stale
 ```
 
 In Cursor (Harness MCP connected):
@@ -404,6 +467,30 @@ For greenfield (empty tree): `cli/harness init-project projects/my-new-app` inst
 
 ---
 
+### 6 — Hermes-only: marketing / business via `ops`
+
+From Telegram (after bootstrap + `/reset`):
+
+```text
+You: "Switch to ops and draft a GTM outline for KreditAgent"
+Hermes: harness_switch_project → ops → obsidian capture + RAG search on vault
+```
+
+Or from shell:
+
+```bash
+scripts/hermes-harness-cli.sh switch-project ops
+scripts/hermes-harness-cli.sh ops obsidian capture "GTM outline: KreditAgent x402 positioning"
+scripts/hermes-harness-cli.sh ops run-task rag.search '{"query":"launch plan"}'
+hermes kanban --board agentic-ops create "Finalize pitch deck" \
+  --workspace "dir:$AGENT_HARNESS_HOME/projects/ops" \
+  --assignee aegis-builder
+```
+
+**Outcome:** Hermes stays the only surface you talk to; Harness executes on the ops workspace with vault-heavy RAG and board `agentic-ops`.
+
+---
+
 ## Architecture
 
 ```txt
@@ -414,7 +501,7 @@ For greenfield (empty tree): `cli/harness init-project projects/my-new-app` inst
              │                │                   │
              ▼                ▼                   ▼
       hermes-gateway    harness-mcp-server    ToolGateway (TS)
-      (systemd)         (stdio, 7 tools)       (policy + audit)
+      (systemd)         (stdio, 9 tools)       (policy + audit)
              │                │                   │
              └────────────────┼───────────────────┘
                               ▼
@@ -597,7 +684,16 @@ sudo loginctl enable-linger $USER
 source ~/.bashrc
 ```
 
-### 4. Wire default project
+### 4. Bootstrap Hermes ↔ Harness (recommended)
+
+```bash
+scripts/hermes-bootstrap-harness.sh
+# syncs hermes-harness-operator + agent-harness-os + harness-mcp
+# indexes all registry projects, runs validate-all, restarts gateway
+# Telegram: /reset
+```
+
+Manual alternative for a single project:
 
 ```bash
 cli/harness link-project projects/aegis-rpc
@@ -606,7 +702,7 @@ cli/harness obsidian init projects/aegis-rpc
 cli/harness index-project projects/aegis-rpc
 ```
 
-Optional — wire additional registry projects the same way for `kreditagent` and `retropick`.
+Repeat `link-project` / `index-project` for `kreditagent`, `retropick`, and `ops` if not using bootstrap.
 
 ### 5. Hermes Telegram (once per bot/chat)
 
@@ -636,13 +732,14 @@ scripts/install-aegis-headless-24-7.sh
 
 ```bash
 aegis-dev
+scripts/hermes-bootstrap-harness.sh   # after harness upgrades (or sync-hermes + restart)
 bash scripts/harness-validate-all-projects.sh
 cli/harness smoke projects/aegis-rpc
 curl -sf http://127.0.0.1:8787/health && echo OK
 npm run acceptance
 ```
 
-After harness upgrades: `cli/harness sync-hermes <project>` + restart `hermes-gateway` + Telegram `/reset`.
+After harness upgrades without full bootstrap: `cli/harness sync-hermes <project>` + restart `hermes-gateway` + Telegram `/reset`.
 
 ---
 
@@ -652,13 +749,16 @@ Every login:
 
 ```bash
 aegis-dev
+scripts/hermes-harness-cli.sh validate-all   # or: bash scripts/harness-validate-all-projects.sh
 ```
 
 | Goal | Command |
 |------|---------|
 | Stack health | `aegis-dev` |
-| Fleet validation | `bash scripts/harness-validate-all-projects.sh` |
-| Switch active project | `cli/harness switch-project kreditagent` |
+| Fleet validation | `scripts/hermes-harness-cli.sh validate-all` |
+| Hermes bootstrap (post-upgrade) | `scripts/hermes-bootstrap-harness.sh` + Telegram `/reset` |
+| List registry | `scripts/hermes-harness-cli.sh list-projects` |
+| Switch active project | `cli/harness switch-project kreditagent` (includes sync-hermes) |
 | Project health | `cli/harness doctor projects/<name>` |
 | Task queue | `cli/harness status projects/<name>` |
 | Bridge + workspace | `curl -sf http://127.0.0.1:8787/health` |
@@ -684,7 +784,7 @@ Entrypoint: `cli/harness`
 cli/harness doctor <project>
 cli/harness status <project>
 cli/harness smoke <project>
-cli/harness switch-project <name>       # registry lookup; updates bridge workspace
+cli/harness switch-project <name>       # registry lookup; sync-hermes; updates bridge workspace (--no-restart optional)
 cli/harness sync-hermes <project>       # skills + harness MCP into Hermes
 ```
 
@@ -733,15 +833,17 @@ npm run build && npm test && npm run acceptance
 
 Server: `runtime/mcp/harness-mcp-server`
 
-**Tools:** `harness_project_inspect`, `harness_task_create`, `harness_task_move`, `harness_verify_run`, `harness_rag_search`, `harness_repo_read`, `harness_patch_propose`
+**Workspace:** reads `.harness/state/active-project.env` on **every tool call** — Hermes can switch projects mid-session without restarting the gateway.
+
+**Tools:** `harness_list_projects`, `harness_switch_project`, `harness_project_inspect`, `harness_task_create`, `harness_task_move`, `harness_verify_run`, `harness_rag_search`, `harness_repo_read`, `harness_patch_propose`
 
 **Prompts:** `implement-task`, `review-diff`, `security-check`
 
 **Resources:** `harness://project/manifest`, `harness://tasks/active`
 
-Sync: `cli/harness sync-cursor <project>` (Cursor) · `cli/harness sync-hermes <project>` (Hermes)
+Sync: `cli/harness sync-cursor <project>` (Cursor) · `cli/harness sync-hermes <project>` (Hermes) · `scripts/hermes-bootstrap-harness.sh` (full fleet)
 
-Requires `AEGIS_WORKSPACE` = active project root.
+Requires `AEGIS_WORKSPACE` = active project root (set by `switch-project` or MCP `harness_switch_project`).
 
 Details: [docs/03-mcp.md](docs/03-mcp.md) · [docs/07-cursor-integration.md](docs/07-cursor-integration.md)
 
@@ -843,6 +945,8 @@ Secrets go in **`~/.hermes/.env`** or project **gitignored** `.env` — never in
 | [scripts/hermes-harness-cli.sh](scripts/hermes-harness-cli.sh) | Telegram-safe allowlisted CLI |
 | [scripts/merge-hermes-harness-mcp.sh](scripts/merge-hermes-harness-mcp.sh) | Wire harness MCP into Hermes |
 | [scripts/post-harness-upgrade-sync.sh](scripts/post-harness-upgrade-sync.sh) | One-shot post-upgrade sync |
+| [scripts/hermes-bootstrap-harness.sh](scripts/hermes-bootstrap-harness.sh) | Hermes-only bootstrap (skills, index fleet, validate) |
+| [runtime/hermes/schedules/fleet-doctor.cron.md](runtime/hermes/schedules/fleet-doctor.cron.md) | Optional Hermes cron spec for fleet validate-all |
 | [scripts/install-aegis-headless-24-7.sh](scripts/install-aegis-headless-24-7.sh) | PM lanes A + O |
 
 ---
@@ -855,7 +959,8 @@ Secrets go in **`~/.hermes/.env`** or project **gitignored** `.env` — never in
 | Wrong workspace edits | `cli/harness switch-project <name>`; check `/health` workspace field |
 | MCP fails to start | Set `AEGIS_WORKSPACE` to project root |
 | RAG returns nothing | `cli/harness index-project <project>` |
-| Hermes unaware of harness | `cli/harness sync-hermes <project>` + restart gateway + `/reset` |
+| Hermes unaware of harness | `scripts/hermes-bootstrap-harness.sh` + Telegram `/reset` |
+| Hermes skips Harness for project work | Check `hermes-harness-operator` skill installed; run bootstrap |
 | Telegram stalls | `/reset`; use Kanban for heavy work |
 | Provider switch ignored | `/provider cursor` + `/reset` |
 | Kanban dispatch skips board | Check `AEGIS_KANBAN_BOARD`; unset to dispatch all registry boards |
@@ -878,7 +983,7 @@ More: [docs/kit/02-hermes-24-7.md](docs/kit/02-hermes-24-7.md) · [docs/kit/11-v
 | [docs/05-rag-memory.md](docs/05-rag-memory.md) | RAG source hierarchy |
 | [docs/06-tools-security.md](docs/06-tools-security.md) | R0–R5 policy matrix |
 | [docs/07-cursor-integration.md](docs/07-cursor-integration.md) | Cursor rules + MCP |
-| [docs/08-hermes-integration.md](docs/08-hermes-integration.md) | Hermes lanes + sync |
+| [docs/08-hermes-integration.md](docs/08-hermes-integration.md) | Hermes-only operation, lanes, bootstrap, acceptance |
 | [docs/09-project-adapter.md](docs/09-project-adapter.md) | `.harness/` adapter |
 
 ### Playbooks

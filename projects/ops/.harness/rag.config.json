@@ -1,0 +1,20 @@
+{
+  "include": [
+    "docs/**",
+    ".harness/project-context.md",
+    "AGENTS.md",
+    "ORCHESTRATOR.md",
+    "HARNESS.md"
+  ],
+  "exclude": [
+    "**/node_modules/**"
+  ],
+  "sourcePriority": {
+    "manifest": 1,
+    "projectContext": 2,
+    "agents": 3,
+    "obsidian": 4,
+    "code": 5
+  },
+  "obsidianHeavy": true
+}

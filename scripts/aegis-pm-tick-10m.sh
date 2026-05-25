@@ -12,6 +12,8 @@ fi
 source "${LIB_DIR}/paths.sh"
 # shellcheck source=lib/decisions-gate.sh
 source "${LIB_DIR}/decisions-gate.sh"
+# shellcheck source=lib/project-manifest.sh
+source "${LIB_DIR}/project-manifest.sh"
 KIT="${AEGIS_REPO_ROOT}"
 RPC="${AEGIS_RPC_ROOT}"
 BRIDGE_BASE="${KIRO_BRIDGE_URL:-http://127.0.0.1:8787}"
@@ -32,10 +34,20 @@ kb_count_blocked() {
 utc_now="$(date -u '+%Y-%m-%d %H:%M UTC')"
 
 echo "=== Aegis PM status — $utc_now ==="
-echo "Scope: $PLAN_REF"
+echo "Scope: fleet registry + $PLAN_REF"
 echo
 
-echo "Board: $BOARD"
+if command -v hermes >/dev/null 2>&1; then
+  echo "=== Fleet Kanban (all registry boards) ==="
+  while IFS= read -r board; do
+    [ -n "$board" ] || continue
+    echo "--- board: $board ---"
+    hermes kanban --board "$board" stats 2>/dev/null || echo "WARN: stats failed for $board"
+  done < <(list_registry_kanban_boards | sort -u)
+  echo
+fi
+
+echo "Active board (AEGIS_KANBAN_BOARD): ${BOARD}"
 if command -v hermes >/dev/null 2>&1; then
   hermes kanban --board "$BOARD" stats 2>/dev/null || echo "WARN: kanban stats failed"
   echo

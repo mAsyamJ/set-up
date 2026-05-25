@@ -1,0 +1,38 @@
+{
+  "schema": "agent-harness.project.v1",
+  "project": {
+    "name": "ops",
+    "type": "ops",
+    "root": ".",
+    "description": "Marketing, business, strategy, and GTM work — vault-heavy, task-driven, no product codebase."
+  },
+  "harness": {
+    "mode": "embedded",
+    "harnessRootEnv": "AGENT_HARNESS_HOME",
+    "defaultHarnessRoot": "../.."
+  },
+  "kanban": {
+    "board": "agentic-ops",
+    "workspace": "dir:${projectRoot}"
+  },
+  "paths": {
+    "product": ["docs"],
+    "docs": ["docs"],
+    "tasks": ".harness/tasks",
+    "state": ".harness/state"
+  },
+  "commands": {
+    "verify": "test -f .harness/project-context.md"
+  },
+  "agents": {
+    "enabled": ["orchestrator", "docs", "qa"]
+  },
+  "skills": {
+    "enabled": ["systematic-debugging", "hermes-kiro-runtime"]
+  },
+  "rules": {
+    "noSecrets": true,
+    "requireTaskFile": true,
+    "requireVerification": false
+  }
+}

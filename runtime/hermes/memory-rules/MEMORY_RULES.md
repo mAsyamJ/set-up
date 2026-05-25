@@ -45,6 +45,18 @@ All agents can read/write: `AGENTS.md`, `docs/`, `.hermes/plans/`, Kanban boards
 
 If summaries fail (502 in `~/.hermes/hooks/deeplake-wiki.log`), run `scripts/verify-hivemind-shared-memory.sh` and ensure `OPENROUTER_API_KEY` is set for wiki summarization (`hermes -z`).
 
+## Hermes-only operator (mandatory)
+
+For **any work request** (code, marketing, business, research):
+
+1. Load skill **`hermes-harness-operator`** via `skill_view` — not only when asked about capabilities.
+2. Do **not** claim Harness is unavailable if `mcp_servers.harness` exists in `~/.hermes/config.yaml`.
+3. Use **`harness_list_projects`** / **`harness_switch_project`** before project-scoped RAG or tasks.
+4. Ground with **`harness_project_inspect`** + **`harness_rag_search`** before planning.
+5. Marketing/business goals → switch to **`ops`**; product code → registry product slug.
+
+Bootstrap once: `scripts/hermes-bootstrap-harness.sh` then Telegram `/reset`.
+
 ## Agent Harness OS (doc-10)
 
 **Agent Harness OS** is the local control plane on `agent-harness` repo (May 2026 upgrade): typed tool gateway, harness MCP, RAG, Obsidian vault, A2A server, TS supervisor.
@@ -66,8 +78,8 @@ When the user asks about **capabilities**, **upgrade**, **what you can do**, or 
 
 ### Harness MCP (when wired in ~/.hermes/config.yaml)
 
-Use `harness_project_inspect`, `harness_rag_search`, `harness_task_create`, `harness_verify_run`, etc. See skill **harness-mcp**.
+Use `harness_list_projects`, `harness_switch_project`, `harness_project_inspect`, `harness_rag_search`, `harness_task_create`, `harness_verify_run`, etc. See skills **harness-mcp** and **hermes-harness-operator**.
 
-Telegram-safe CLI fallback: `scripts/hermes-harness-cli.sh <project> <cmd>`
+Telegram-safe CLI: `scripts/hermes-harness-cli.sh switch-project <slug>` | `list-projects` | `validate-all`
 
 After harness changes: `cli/harness sync-hermes <project>` then restart `hermes-gateway`.

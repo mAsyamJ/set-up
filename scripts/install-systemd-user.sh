@@ -71,8 +71,11 @@ if systemctl --user is-active --quiet hermes-gateway 2>/dev/null; then
   echo "Restarted hermes-gateway (pick up skills)"
 fi
 
-# Agent Harness OS skills + MCP
-if [ -x "${AGENT_HARNESS_HOME}/cli/harness" ]; then
+# Agent Harness OS — Hermes-only bootstrap
+if [ -x "${AGENT_HARNESS_HOME}/scripts/hermes-bootstrap-harness.sh" ]; then
+  bash "${AGENT_HARNESS_HOME}/scripts/hermes-bootstrap-harness.sh" "${AEGIS_DEFAULT_PROJECT:-aegis-rpc}" || \
+    "${AGENT_HARNESS_HOME}/cli/harness" sync-hermes "${AEGIS_RPC_ROOT}" 2>/dev/null || true
+elif [ -x "${AGENT_HARNESS_HOME}/cli/harness" ]; then
   "${AGENT_HARNESS_HOME}/cli/harness" sync-hermes "${AEGIS_RPC_ROOT}" 2>/dev/null || \
     bash "${AGENT_HARNESS_HOME}/cli/commands/sync-hermes.sh" "${AEGIS_RPC_ROOT}" || true
 fi

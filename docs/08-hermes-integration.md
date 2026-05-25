@@ -1,90 +1,91 @@
 # Hermes Integration
 
-Hermes remains the **external 24/7 orchestrator**. The harness augments it — does not replace it.
+Hermes is the **single operator interface**. Harness OS is the **execution engine** Hermes uses for grounded project work. Hermes never "becomes" Harness — after bootstrap, Hermes routes all goals through Harness tools.
 
 ## Stack
 
 ```txt
-Telegram → hermes-gateway → bridge :8787 → Cursor/Kiro
+Telegram → hermes-gateway → Harness MCP + Hivemind
+                ↓                    ↓
+         hermes-harness-operator   Tool Gateway → RAG / tasks / Obsidian
                 ↓
-         ~/.hermes/skills/  (agent-harness-os, harness-mcp, …)
-         mcp_servers.hivemind + mcp_servers.harness
-         Lanes A / O / B
+         bridge :8787 → Cursor/Kiro (Kanban workers)
 ```
 
-## Sync harness into Hermes (required after upgrade)
+## One-shot bootstrap (Hermes-only operation)
 
 ```bash
-cli/harness sync-hermes projects/aegis-rpc
-systemctl --user restart hermes-gateway
+scripts/hermes-bootstrap-harness.sh
+# Telegram: /reset
 ```
 
-Telegram: send **`/reset`** then ask about harness capabilities.
+Does: `switch-project`, `sync-hermes`, index all registry projects, `harness-validate-all-projects`, restart gateway + bridge.
 
-One-shot post-upgrade:
+Also runs from `scripts/install-systemd-user.sh` on install.
 
-```bash
-scripts/post-harness-upgrade-sync.sh projects/aegis-rpc
-```
-
-## What sync-hermes installs
+## What sync-hermes / bootstrap installs
 
 | Target | Content |
 |--------|---------|
-| `~/.hermes/skills/agent-harness-os/` | Full doc-10 capability map |
+| `~/.hermes/skills/hermes-harness-operator/` | Always-on goal routing |
+| `~/.hermes/skills/agent-harness-os/` | Capability map + registry |
 | `~/.hermes/skills/harness-mcp/` | MCP tool reference |
-| `~/.hermes/memory-rules/` | MEMORY_RULES with harness OS section |
-| `~/.hermes/config.yaml` | `mcp_servers.harness` (via merge script) |
-| Project skills | From manifest via `sync-skills` |
+| `~/.hermes/memory-rules/` | Mandatory harness-first rules |
+| `~/.hermes/config.yaml` | `mcp_servers.harness` |
 
-## Harness MCP in Hermes
+## Harness MCP in Hermes (dynamic workspace)
 
-Template: [docs/kit/templates/hermes-config.harness-mcp.yaml](kit/templates/hermes-config.harness-mcp.yaml)
+Harness MCP re-reads `.harness/state/active-project.env` on **each tool call** — switch projects without gateway restart.
+
+| Tool | Purpose |
+|------|---------|
+| `harness_list_projects` | Registry slugs, boards, active flag |
+| `harness_switch_project` | Update active workspace |
+| `harness_project_inspect` | Manifest + context + tasks |
+| `harness_rag_search` | Project-scoped RAG |
+| `harness_task_create` / `harness_task_move` | Task lifecycle |
 
 Merge script: `scripts/merge-hermes-harness-mcp.sh`
 
-Tools available when wired: `harness_project_inspect`, `harness_rag_search`, `harness_task_create`, `harness_verify_run`, …
+## Goal routing
+
+| Goal | Switch to | Board |
+|------|-----------|-------|
+| Product code | `aegis-rpc`, `kreditagent`, `retropick` | per registry |
+| Marketing / business | `ops` | `agentic-ops` |
+| Fleet health | — | `validate-all` |
+
+Skill: `runtime/hermes/skill-hermes-harness-operator/SKILL.md`
 
 ## Telegram-safe CLI
 
-When MCP unavailable, Hermes may use:
-
 ```bash
-scripts/hermes-harness-cli.sh projects/aegis-rpc doctor
-scripts/hermes-harness-cli.sh projects/aegis-rpc run-task rag.search '{"query":"manifest"}'
-scripts/hermes-harness-cli.sh projects/aegis-rpc obsidian capture "Note title"
+scripts/hermes-harness-cli.sh list-projects
+scripts/hermes-harness-cli.sh switch-project kreditagent
+scripts/hermes-harness-cli.sh validate-all
+scripts/hermes-harness-cli.sh ops obsidian capture "Note title"
+scripts/hermes-harness-cli.sh kreditagent run-task rag.search '{"query":"x402"}'
 ```
 
-Allowlist only — no `start-a2a`, arbitrary shell, or secrets.
+## Scheduled health
 
-## Bridge prompt injection
-
-`tools/kiro-openai-bridge/server.js` injects Agent Harness OS context into Cursor/Kiro backend prompts (capabilities, CLI, vault path, manifest snippet).
-
-## Scheduled doctor
-
-Cron spec: [runtime/hermes/schedules/project-doctor.cron.md](../runtime/hermes/schedules/project-doctor.cron.md)
-
-```bash
-cli/harness start-hermes-doctor projects/aegis-rpc
-```
+- Per-project: [runtime/hermes/schedules/project-doctor.cron.md](../runtime/hermes/schedules/project-doctor.cron.md)
+- Fleet: [runtime/hermes/schedules/fleet-doctor.cron.md](../runtime/hermes/schedules/fleet-doctor.cron.md)
 
 ## Lanes
 
 | Lane | Trigger | Role |
 |------|---------|------|
-| A | 10m cron | PM status |
-| O | ~5m timer | Orchestrate + dispatch |
+| A | 10m cron | Fleet Kanban stats + stack health → Telegram |
+| O | ~5m timer | Orchestrate + multi-board dispatch |
 | B | Kanban | Workers via bridge |
-
-Install: `scripts/install-aegis-headless-24-7.sh`
 
 ## Acceptance (Telegram)
 
-1. `cli/harness sync-hermes projects/aegis-rpc`
-2. Restart `hermes-gateway`
-3. `/reset` in Telegram
-4. Ask: *"What are your new harness capabilities?"*
-5. **Pass:** response includes MCP, RAG, Obsidian vault, A2A, CLI — not only generic Nous skills
+1. `scripts/hermes-bootstrap-harness.sh`
+2. `/reset` in Telegram
+3. Ask: *"What harness tools and projects do you have?"* — must list registry + ops + MCP tools
+4. Ask: *"Switch to kreditagent and search RAG for x402"* — uses switch + RAG
+5. Ask: *"Create a marketing task for launch plan"* — routes to `ops` / `agentic-ops`
 
-See also: [docs/kit/02-hermes-24-7.md](kit/02-hermes-24-7.md) · [docs/kit/07-memory-architecture.md](kit/07-memory-architecture.md)
+See also: [docs/kit/02-hermes-24-7.md](kit/02-hermes-24-7.md) · [README.md](../README.md#operate-from-hermes-only)

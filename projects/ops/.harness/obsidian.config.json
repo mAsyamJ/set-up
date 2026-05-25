@@ -1,0 +1,31 @@
+{
+  "enabled": true,
+  "vaultPath": "~/dev/Project/_vaults/agentic-engineering",
+  "projectNotePath": "01-Projects/Ops/_index.md",
+  "projectSlug": "ops",
+  "projectDisplayName": "Agentic Ops",
+  "writePolicy": {
+    "allowCreateNotes": true,
+    "allowUpdateIndex": true,
+    "allowModifyExistingNotes": false,
+    "requireFrontmatter": true
+  },
+  "sync": {
+    "runSummaries": true,
+    "decisions": true,
+    "research": true,
+    "tasks": "summary-only",
+    "traces": "summary-only"
+  },
+  "rag": {
+    "includeInProjectRetrieval": true,
+    "includeFolders": [
+      "01-Projects/Ops",
+      "00-Inbox",
+      "04-Research",
+      "05-Decisions",
+      "07-Patterns"
+    ],
+    "excludeFolders": ["99-Archive"]
+  }
+}

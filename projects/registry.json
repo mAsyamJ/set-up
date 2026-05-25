@@ -16,6 +16,11 @@
       "path": "projects/retropick",
       "kanban": "retropick-v1",
       "displayName": "RetroPick"
+    },
+    "ops": {
+      "path": "projects/ops",
+      "kanban": "agentic-ops",
+      "displayName": "Agentic Ops"
     }
   }
 }

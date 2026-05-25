@@ -19,6 +19,8 @@ Start locally: `cli/harness start-mcp <project>`
 
 | MCP tool | Gateway equivalent |
 |----------|-------------------|
+| `harness_list_projects` | registry.json |
+| `harness_switch_project` | active-project.env |
 | `harness_project_inspect` | `project.inspect` |
 | `harness_task_create` | `task.create` |
 | `harness_task_move` | `task.move` |
@@ -38,4 +40,4 @@ Start locally: `cli/harness start-mcp <project>`
 - `harness://project/manifest`
 - `harness://tasks/active`
 
-See skill **agent-harness-os** for full control plane map (RAG, Obsidian, A2A, CLI).
+See skills **agent-harness-os**, **hermes-harness-operator**

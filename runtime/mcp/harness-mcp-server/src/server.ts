@@ -9,11 +9,53 @@ import { HarnessStore, projectStateDir } from "../../../../core/state/sqlite.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HARNESS_ROOT = path.resolve(__dirname, "../../../..");
+const REGISTRY_PATH = path.join(HARNESS_ROOT, "projects", "registry.json");
+const ACTIVE_PROJECT_ENV = path.join(HARNESS_ROOT, ".harness", "state", "active-project.env");
 
+function parseEnvFile(filePath: string): Record<string, string> {
+  if (!fs.existsSync(filePath)) return {};
+  const out: Record<string, string> = {};
+  for (const line of fs.readFileSync(filePath, "utf8").split("\n")) {
+    const m = line.match(/^export\s+([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (m) out[m[1]] = m[2];
+  }
+  return out;
+}
+
+/** Re-read active-project.env each call so Hermes can switch without gateway restart. */
 function projectRoot(): string {
+  const active = parseEnvFile(ACTIVE_PROJECT_ENV);
+  if (active.AEGIS_WORKSPACE) return path.resolve(active.AEGIS_WORKSPACE);
   if (process.env.AEGIS_WORKSPACE) return path.resolve(process.env.AEGIS_WORKSPACE);
+  if (active.AEGIS_RPC_ROOT) return path.resolve(active.AEGIS_RPC_ROOT);
   if (process.env.AEGIS_RPC_ROOT) return path.resolve(process.env.AEGIS_RPC_ROOT);
-  throw new Error("Set AEGIS_WORKSPACE or AEGIS_RPC_ROOT for harness MCP");
+  throw new Error("Set AEGIS_WORKSPACE or run harness_switch_project / switch-project");
+}
+
+function loadRegistry(): {
+  default?: string;
+  projects: Record<string, { path: string; kanban?: string; displayName?: string }>;
+} {
+  if (!fs.existsSync(REGISTRY_PATH)) return { projects: {} };
+  return JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8"));
+}
+
+function switchProjectBySlug(slug: string): { slug: string; root: string; board: string; displayName: string } {
+  const reg = loadRegistry();
+  const cfg = reg.projects[slug];
+  if (!cfg) throw new Error(`Unknown project slug: ${slug}`);
+  const root = path.isAbsolute(cfg.path) ? cfg.path : path.join(HARNESS_ROOT, cfg.path);
+  if (!fs.existsSync(root)) throw new Error(`Project path missing: ${root}`);
+  const resolved = path.resolve(root);
+  const board = cfg.kanban ?? "";
+  const stateDir = path.dirname(ACTIVE_PROJECT_ENV);
+  fs.mkdirSync(stateDir, { recursive: true });
+  fs.writeFileSync(
+    ACTIVE_PROJECT_ENV,
+    `# Active harness project — updated by harness_switch_project\nexport AEGIS_DEFAULT_PROJECT=${slug}\nexport AEGIS_RPC_ROOT=${resolved}\nexport AEGIS_WORKSPACE=${resolved}\nexport AEGIS_KANBAN_BOARD=${board}\n`,
+    "utf8"
+  );
+  return { slug, root: resolved, board, displayName: cfg.displayName ?? slug };
 }
 
 async function withGw<T>(tool: string, args: Record<string, unknown>, fn: (gw: ToolGateway) => Promise<T>): Promise<T> {
@@ -36,7 +78,40 @@ async function withGw<T>(tool: string, args: Record<string, unknown>, fn: (gw: T
   }
 }
 
-const server = new McpServer({ name: "harness-mcp", version: "0.2.0" });
+const server = new McpServer({ name: "harness-mcp", version: "0.3.0" });
+
+server.tool("harness_list_projects", "List projects from projects/registry.json.", {}, async () => {
+  const reg = loadRegistry();
+  const active = parseEnvFile(ACTIVE_PROJECT_ENV);
+  const list = Object.entries(reg.projects).map(([slug, cfg]) => ({
+    slug,
+    displayName: cfg.displayName ?? slug,
+    path: path.isAbsolute(cfg.path) ? cfg.path : path.join(HARNESS_ROOT, cfg.path),
+    kanban: cfg.kanban ?? "",
+    active: active.AEGIS_DEFAULT_PROJECT === slug,
+  }));
+  return {
+    content: [{ type: "text", text: JSON.stringify({ default: reg.default, activeProject: active.AEGIS_DEFAULT_PROJECT ?? null, projects: list }, null, 2) }],
+    isError: false,
+  };
+});
+
+server.tool("harness_switch_project", "Switch active harness workspace (updates active-project.env).", {
+  slug: z.string(),
+}, async ({ slug }) => {
+  try {
+    const result = switchProjectBySlug(slug);
+    return {
+      content: [{ type: "text", text: JSON.stringify({ ok: true, ...result, currentWorkspace: projectRoot() }, null, 2) }],
+      isError: false,
+    };
+  } catch (err) {
+    return {
+      content: [{ type: "text", text: JSON.stringify({ ok: false, error: String(err) }, null, 2) }],
+      isError: true,
+    };
+  }
+});
 
 server.tool("harness_project_inspect", "Inspect manifest, context, active tasks.", {}, async () => {
   const result = await withGw("project.inspect", {}, (gw) => gw.call("project.inspect"));

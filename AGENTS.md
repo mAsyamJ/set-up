@@ -44,6 +44,21 @@ Full architecture: [README.md](README.md), [docs/00-vision.md](docs/00-vision.md
 4. `<project>/.harness/project.manifest.json` — per-project config
 5. `<project>/AGENTS.md` — product agent contract
 
+## Hermes-first operator
+
+Operate from **Telegram / Hermes only** — Harness is the execution layer:
+
+```bash
+scripts/hermes-bootstrap-harness.sh   # once or after upgrade
+# Telegram: /reset
+```
+
+Skills: `hermes-harness-operator`, `agent-harness-os`, `harness-mcp`
+
+MCP: `harness_list_projects`, `harness_switch_project` (no gateway restart for switch)
+
+Safe CLI: `scripts/hermes-harness-cli.sh list-projects|switch-project|validate-all`
+
 ## Projects
 
 | Project | Path | Kanban board |
@@ -51,6 +66,7 @@ Full architecture: [README.md](README.md), [docs/00-vision.md](docs/00-vision.md
 | Aegis RPC | `projects/aegis-rpc/` | `aegis-hackathon` |
 | KreditAgent | `projects/kreditagent/` | `kreditagent-hackathon` |
 | RetroPick | `projects/retropick/` | `retropick-v1` |
+| Agentic Ops | `projects/ops/` | `agentic-ops` (marketing/business) |
 
 Registry: `projects/registry.json`. Switch active project:
 
@@ -84,9 +100,9 @@ systemctl --user restart hermes-gateway
 # Telegram: /reset
 ```
 
-Skills installed: `agent-harness-os`, `harness-mcp` → `~/.hermes/skills/`
+Skills installed: `hermes-harness-operator`, `agent-harness-os`, `harness-mcp` → `~/.hermes/skills/`
 
-Telegram-safe CLI: `scripts/hermes-harness-cli.sh <project> <cmd>`
+Telegram-safe CLI: `scripts/hermes-harness-cli.sh list-projects|switch-project|validate-all`
 
 ## Memory (Hivemind)
 
