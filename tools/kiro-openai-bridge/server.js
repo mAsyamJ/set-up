@@ -10,21 +10,56 @@ const LINUX_MAX_ARG_STRLEN = 131072;
 const KIRO_AUTH_EXIT = 42;
 const AUTH_FAILURE_RE = /not logged in|kiro-cli login/i;
 const DEBUG_BRIDGE = process.env.AEGIS_BRIDGE_DEBUG === "1";
+const DEBUG_SESSION_ID = "5d3eff";
 
-function debugLog(_location, _message, _data, _hypothesisId) {
+const HARNESS_ROOT_EARLY = path.resolve(__dirname, "../..");
+const DEBUG_LOG_PATH =
+  process.env.AEGIS_DEBUG_LOG ||
+  path.join(HARNESS_ROOT_EARLY, ".cursor/debug-5d3eff.log");
+
+function agentDebugLog(location, message, data, hypothesisId) {
+  const payload = {
+    sessionId: DEBUG_SESSION_ID,
+    location,
+    message,
+    data,
+    hypothesisId,
+    timestamp: Date.now(),
+    runId: process.env.AEGIS_DEBUG_RUN_ID || "pre-fix",
+  };
+  try {
+    fs.appendFileSync(DEBUG_LOG_PATH, `${JSON.stringify(payload)}\n`);
+  } catch {
+    // ignore
+  }
+  fetch("http://127.0.0.1:7481/ingest/99afa3da-7bb4-40c2-b010-dc3ec090006a", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": DEBUG_SESSION_ID,
+    },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
+function debugLog(location, message, data, hypothesisId) {
   if (!DEBUG_BRIDGE) return;
+  agentDebugLog(location, message, data, hypothesisId);
 }
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
 
-const HARNESS_ROOT = path.resolve(__dirname, "../..");
+const HARNESS_ROOT = HARNESS_ROOT_EARLY;
 const DEFAULT_PROJECT_ROOT = path.join(HARNESS_ROOT, "projects", "aegis-rpc");
+const { resolveActiveWorkspace } = require(path.join(
+  HARNESS_ROOT,
+  "scripts/lib/resolve-active-workspace.cjs"
+));
 
-const WORKSPACE =
-  process.env.AEGIS_WORKSPACE ||
-  process.env.AEGIS_REPO_PATH ||
-  DEFAULT_PROJECT_ROOT;
+function getWorkspace() {
+  return resolveActiveWorkspace(HARNESS_ROOT, DEFAULT_PROJECT_ROOT);
+}
 
 const KIRO_PROVIDER =
   process.env.KIRO_PROVIDER ||
@@ -113,7 +148,7 @@ function normalizeContent(content) {
   return JSON.stringify(content);
 }
 
-function runtimeTruthLines(providerModel) {
+function runtimeTruthLines(providerModel, workspace) {
   const isCursor = providerModel === "cursor-composer-2";
   const cursorMode = modelState.getCursorBridgeMode();
   const backendLine = isCursor
@@ -151,19 +186,25 @@ function runtimeTruthLines(providerModel) {
     identityLine,
     "- Always return visible text. Never return an empty response.",
     ...constraints,
-    ...harnessManifestLines(),
+    ...harnessManifestLines(workspace),
   ];
 }
 
-let _manifestCache = { at: 0, lines: [] };
+let _manifestCache = { at: 0, workspace: "", lines: [] };
 
-function harnessManifestLines() {
+function harnessManifestLines(workspace) {
   const now = Date.now();
-  if (now - _manifestCache.at < 60_000) return _manifestCache.lines;
+  if (
+    now - _manifestCache.at < 60_000 &&
+    _manifestCache.workspace === workspace
+  ) {
+    return _manifestCache.lines;
+  }
   _manifestCache.at = now;
+  _manifestCache.workspace = workspace;
   _manifestCache.lines = [];
   try {
-    const manifestPath = path.join(WORKSPACE, ".harness", "project.manifest.json");
+    const manifestPath = path.join(workspace, ".harness", "project.manifest.json");
     if (!fs.existsSync(manifestPath)) return [];
     const m = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
     const name = m?.project?.name || "unknown";
@@ -180,7 +221,7 @@ function harnessManifestLines() {
   return _manifestCache.lines;
 }
 
-function messagesToPrompt(messages, providerModel) {
+function messagesToPrompt(messages, providerModel, workspace) {
   const normalized = (messages || [])
     .map((m) => {
       const role = String(m.role || "user").toUpperCase();
@@ -190,7 +231,7 @@ function messagesToPrompt(messages, providerModel) {
     .join("\n\n");
 
   const hivemindBlock = buildHivemindContext();
-  const sections = runtimeTruthLines(providerModel);
+  const sections = runtimeTruthLines(providerModel, workspace);
 
   if (hivemindBlock) {
     sections.push("", hivemindBlock);
@@ -215,12 +256,22 @@ function providerSpawnPlan(prompt) {
 function resolveProviderModel(requestModel) {
   const requested = String(requestModel || "").trim();
   const known = modelState.listProviders();
-  const resolved = known.includes(requested)
+  let resolved = known.includes(requested)
     ? requested
     : modelState.getDefaultModel();
 
+  if (
+    resolved === "cursor-composer-2" &&
+    !modelState.isCursorConfigured()
+  ) {
+    console.warn(
+      "[model-bridge] cursor-composer-2 not configured; routing to kiro-current"
+    );
+    resolved = "kiro-current";
+  }
+
   // #region agent log
-  debugLog(
+  agentDebugLog(
     "server.js:resolveProviderModel",
     "provider routing",
     {
@@ -228,8 +279,9 @@ function resolveProviderModel(requestModel) {
       resolved,
       persistedDefault: modelState.getDefaultModel(),
       honoredRequest: known.includes(requested),
+      cursorConfigured: modelState.isCursorConfigured(),
     },
-    "H2"
+    "H3"
   );
   // #endregion
 
@@ -299,7 +351,8 @@ function enrichProviderError(err) {
   return err;
 }
 
-async function callKiro(prompt, { messageCount = 0 } = {}) {
+async function callKiro(prompt, { messageCount = 0, workspace } = {}) {
+  const ws = workspace || getWorkspace();
   const startedAt = Date.now();
   const promptBytes = Buffer.byteLength(prompt, "utf8");
   const timeoutMs = resolveProviderTimeout("kiro-current", { promptBytes, messageCount });
@@ -328,13 +381,13 @@ async function callKiro(prompt, { messageCount = 0 } = {}) {
       spawn.useArgv ? [prompt] : [],
       {
         input: spawn.useArgv ? undefined : prompt,
-        cwd: WORKSPACE,
+        cwd: ws,
         timeout: timeoutMs,
         maxBuffer: 1024 * 1024 * 12,
         env: {
           ...process.env,
-          AEGIS_WORKSPACE: WORKSPACE,
-          AEGIS_REPO_PATH: WORKSPACE,
+          AEGIS_WORKSPACE: ws,
+          AEGIS_REPO_PATH: ws,
           FORCE_COLOR: "0",
           NO_COLOR: "1",
         },
@@ -365,7 +418,7 @@ async function callKiro(prompt, { messageCount = 0 } = {}) {
       `- stdout chars: ${rawStdout.length}`,
       `- stderr chars: ${rawStderr.length}`,
       `- provider: ${KIRO_PROVIDER}`,
-      `- workspace: ${WORKSPACE}`,
+      `- workspace: ${ws}`,
     ].join("\n");
   }
 
@@ -388,10 +441,12 @@ async function callKiro(prompt, { messageCount = 0 } = {}) {
   }
 }
 
-async function callCursor(prompt, { messageCount = 0 } = {}) {
+async function callCursor(prompt, { messageCount = 0, workspace } = {}) {
   if (!modelState.isCursorConfigured()) {
     throw new Error(modelState.CURSOR_NOT_CONFIGURED_MESSAGE);
   }
+
+  const ws = workspace || getWorkspace();
 
   const startedAt = Date.now();
   const promptBytes = Buffer.byteLength(prompt, "utf8");
@@ -421,13 +476,13 @@ async function callCursor(prompt, { messageCount = 0 } = {}) {
     spawn.useArgv ? [CURSOR_PROVIDER, prompt] : [CURSOR_PROVIDER],
     {
       input: spawn.useArgv ? undefined : prompt,
-      cwd: WORKSPACE,
+      cwd: ws,
       timeout: timeoutMs,
       maxBuffer: 1024 * 1024 * 12,
       env: {
         ...process.env,
-        AEGIS_WORKSPACE: WORKSPACE,
-        AEGIS_REPO_PATH: WORKSPACE,
+        AEGIS_WORKSPACE: ws,
+        AEGIS_REPO_PATH: ws,
         FORCE_COLOR: "0",
         NO_COLOR: "1",
       },
@@ -456,7 +511,7 @@ async function callCursor(prompt, { messageCount = 0 } = {}) {
       `- stdout chars: ${rawStdout.length}`,
       `- stderr chars: ${rawStderr.length}`,
       `- provider: ${CURSOR_PROVIDER}`,
-      `- workspace: ${WORKSPACE}`,
+      `- workspace: ${ws}`,
     ].join("\n");
   }
 
@@ -479,13 +534,13 @@ async function callCursor(prompt, { messageCount = 0 } = {}) {
   }
 }
 
-async function callProvider(providerModel, prompt, { messageCount = 0 } = {}) {
+async function callProvider(providerModel, prompt, { messageCount = 0, workspace } = {}) {
   if (providerModel === "cursor-composer-2") {
-    return callCursor(prompt, { messageCount });
+    return callCursor(prompt, { messageCount, workspace });
   }
 
   try {
-    return await callKiro(prompt, { messageCount });
+    return await callKiro(prompt, { messageCount, workspace });
   } catch (err) {
     const parsed = err?.providerParsed || parseProviderExecError(err);
 
@@ -515,7 +570,7 @@ async function callProvider(providerModel, prompt, { messageCount = 0 } = {}) {
         "H3"
       );
       // #endregion
-      return callCursor(prompt, { messageCount });
+      return callCursor(prompt, { messageCount, workspace });
     }
 
     throw enrichProviderError(err);
@@ -613,9 +668,37 @@ async function streamWithProviderHeartbeat({
   providerModel,
   prompt,
   messageCount = 0,
+  workspace,
 }) {
+  const streamStartedAt = Date.now();
   initSseStream(res, id, model);
   writeSseKeepalive(res, id, model);
+
+  // #region agent log
+  agentDebugLog(
+    "server.js:streamWithProviderHeartbeat:start",
+    "SSE stream opened",
+    { providerModel, messageCount, workspace, promptBytes: Buffer.byteLength(prompt, "utf8") },
+    "H1"
+  );
+  // #endregion
+
+  res.on("close", () => {
+    if (!res.writableEnded) {
+      // #region agent log
+      agentDebugLog(
+        "server.js:streamWithProviderHeartbeat:client-close",
+        "client disconnected before stream finished",
+        {
+          providerModel,
+          elapsedMs: Date.now() - streamStartedAt,
+          writableEnded: res.writableEnded,
+        },
+        "H1"
+      );
+      // #endregion
+    }
+  });
 
   const promptBytes = Buffer.byteLength(prompt, "utf8");
   const timeoutMs = resolveProviderTimeout(providerModel, { promptBytes, messageCount });
@@ -623,10 +706,11 @@ async function streamWithProviderHeartbeat({
     providerModel,
     messageCount,
     promptBytes,
+    workspace,
   });
 
   let settled = false;
-  const providerResult = callProvider(providerModel, prompt, { messageCount })
+  const providerResult = callProvider(providerModel, prompt, { messageCount, workspace })
     .then((output) => ({ ok: true, output }))
     .catch((err) => ({ ok: false, err }))
     .finally(() => {
@@ -659,6 +743,15 @@ async function streamWithProviderHeartbeat({
 
   writeSseContentChunks(res, id, model, result.output);
   finishSseStream(res, id, model);
+
+  // #region agent log
+  agentDebugLog(
+    "server.js:streamWithProviderHeartbeat:complete",
+    "SSE stream finished",
+    { providerModel, elapsedMs: Date.now() - streamStartedAt },
+    "H1"
+  );
+  // #endregion
 }
 
 function streamResponse({ res, id, model, content }) {
@@ -686,11 +779,12 @@ function providerStatusPayload() {
 
 app.get("/health", (_req, res) => {
   const defaultModel = modelState.getDefaultModel();
+  const workspace = getWorkspace();
   res.json({
     ok: true,
     provider: defaultModel,
     defaultModel,
-    workspace: WORKSPACE,
+    workspace,
     providers: {
       kiro: { script: KIRO_PROVIDER, model: "kiro-current" },
       cursor: {
@@ -715,12 +809,12 @@ app.get("/health/ready", async (_req, res) => {
 
   try {
     await execFileAsync("kiro-cli", ["--version"], {
-      cwd: WORKSPACE,
+      cwd: getWorkspace(),
       timeout: 15000,
       env: process.env,
     });
     const whoami = await execFileAsync("kiro-cli", ["whoami"], {
-      cwd: WORKSPACE,
+      cwd: getWorkspace(),
       timeout: 15000,
       env: process.env,
     });
@@ -819,42 +913,28 @@ app.post("/v1/chat/completions", async (req, res) => {
     } = body;
 
     const providerModel = resolveProviderModel(requestModel);
+    const workspace = getWorkspace();
 
     console.log("[model-bridge] /v1/chat/completions", {
       stream,
       requestModel,
       providerModel,
+      workspace,
       messageCount: Array.isArray(messages) ? messages.length : 0,
       hasTools: Boolean(body.tools),
       toolCount: Array.isArray(body.tools) ? body.tools.length : 0,
     });
 
-    if (providerModel === "cursor-composer-2" && !modelState.isCursorConfigured()) {
-      const error = {
-        error: {
-          message: `${modelState.CURSOR_NOT_CONFIGURED_MESSAGE} Switch back with /provider kiro.`,
-          type: "invalid_request_error",
-        },
-      };
-      if (stream) {
-        res.status(400);
-        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
-        res.write(`data: ${JSON.stringify(error)}\n\n`);
-        res.write("data: [DONE]\n\n");
-        return res.end();
-      }
-      return res.status(400).json(error);
-    }
-
-    const prompt = messagesToPrompt(messages, providerModel);
+    const prompt = messagesToPrompt(messages, providerModel, workspace);
 
     // #region agent log
-    debugLog(
+    agentDebugLog(
       "server.js:chat/completions:prompt-built",
       "prompt assembled for provider",
       {
         providerModel,
         requestModel,
+        workspace,
         messageCount: Array.isArray(messages) ? messages.length : 0,
         promptBytes: Buffer.byteLength(prompt, "utf8"),
         bodyBytes: Buffer.byteLength(JSON.stringify(body), "utf8"),
@@ -893,11 +973,12 @@ app.post("/v1/chat/completions", async (req, res) => {
         providerModel,
         prompt,
         messageCount,
+        workspace,
       });
       return;
     }
 
-    const output = await callProvider(providerModel, prompt, { messageCount });
+    const output = await callProvider(providerModel, prompt, { messageCount, workspace });
     return res.json(nonStreamResponse({ id, model: providerModel, content: output }));
   } catch (err) {
     console.error("[model-bridge error]", err);
@@ -931,7 +1012,7 @@ const port = Number(process.env.PORT || 8787);
 app.listen(port, "127.0.0.1", () => {
   const defaultModel = modelState.getDefaultModel();
   console.log(`Hermes multi-provider bridge listening on http://127.0.0.1:${port}`);
-  console.log(`Workspace: ${WORKSPACE}`);
+  console.log(`Workspace: ${getWorkspace()} (hot-reload from active-project.env)`);
   console.log(`Default model: ${defaultModel}`);
   console.log(`Kiro provider: ${KIRO_PROVIDER}`);
   console.log(`Cursor provider: ${CURSOR_PROVIDER}`);

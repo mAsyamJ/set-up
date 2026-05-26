@@ -1,0 +1,4 @@
+# Generated OpenSrc coordinates — clone locally and set path file body to absolute root.
+# Primary study repo for Product 1 (see docs/source-learning.md).
+
+github.com/cowprotocol/services

@@ -1,0 +1,61 @@
+{
+  "schema": "agent-harness.project.v1",
+  "project": {
+    "name": "arbeyes-defi",
+    "type": "rust-defi-research",
+    "root": ".",
+    "description": "CoW Protocol read-only shadow solver (Rust): scorer validation gate, post-gate routing vs settled auctions — no on-chain submission."
+  },
+  "harness": {
+    "mode": "embedded",
+    "harnessRootEnv": "AGENT_HARNESS_HOME",
+    "defaultHarnessRoot": "../../.."
+  },
+  "kanban": {
+    "board": "arbeyes-defi-v1",
+    "workspace": "dir:${projectRoot}"
+  },
+  "paths": {
+    "product": ["apps", "crates", "config", "scripts"],
+    "docs": ["docs"],
+    "scripts": ["scripts"],
+    "tasks": ".harness/tasks",
+    "state": ".harness/state"
+  },
+  "commands": {
+    "dev": "cargo run -p cow-shadow-solver",
+    "typecheck": "bash scripts/harness-verify.sh typecheck",
+    "lint": "bash scripts/harness-verify.sh lint",
+    "test": "bash scripts/harness-verify.sh test",
+    "smoke": "bash scripts/harness-verify.sh smoke",
+    "verify": "bash scripts/harness-verify.sh all"
+  },
+  "agents": {
+    "enabled": [
+      "orchestrator",
+      "rust-core",
+      "rust-evm",
+      "observability",
+      "security-scope",
+      "qa-gate",
+      "opensrc-librarian"
+    ]
+  },
+  "skills": {
+    "enabled": [
+      "systematic-debugging",
+      "tdd",
+      "opensrc-research",
+      "hermes-kiro-runtime",
+      "agent-harness-os",
+      "harness-mcp",
+      "arbeyes-cow-shadow"
+    ]
+  },
+  "rules": {
+    "noSecrets": true,
+    "requireTaskFile": true,
+    "requireVerification": true,
+    "archiveBeforeDelete": true
+  }
+}

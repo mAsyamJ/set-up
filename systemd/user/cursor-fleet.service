@@ -1,0 +1,26 @@
+[Unit]
+Description=Cursor Fleet Manager — headless Kanban workers (worktree-isolated)
+After=network-online.target kiro-openai-bridge.service
+Wants=kiro-openai-bridge.service
+
+[Service]
+Type=simple
+Environment=AGENT_HARNESS_HOME=@AGENT_HARNESS_HOME@
+Environment=AEGIS_REPO_ROOT=@AGENT_HARNESS_HOME@
+Environment=AEGIS_RPC_ROOT=@AEGIS_RPC_ROOT@
+Environment=AEGIS_WORKSPACE=@AEGIS_RPC_ROOT@
+Environment=AEGIS_CURSOR_FLEET_ENABLED=1
+Environment=AEGIS_CURSOR_FLEET_MAX_CONCURRENT=4
+Environment=AEGIS_CURSOR_FLEET_QUEUE_MAX=20
+Environment=AEGIS_CURSOR_FLEET_INTERVAL_MS=30000
+Environment=PATH=@AEGIS_NODE_DIR@:/home/asyam/.local/bin:/usr/bin:/bin
+Environment=AEGIS_NODE=@AEGIS_NODE@
+EnvironmentFile=-@HOME@/.hermes/.env
+ExecStart=@AGENT_HARNESS_HOME@/cli/harness cursor-fleet start
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

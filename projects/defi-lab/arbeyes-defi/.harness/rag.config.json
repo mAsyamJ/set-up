@@ -1,0 +1,27 @@
+{
+  "include": [
+    "apps/**",
+    "crates/**",
+    "config/**",
+    "scripts/**",
+    "docs/**",
+    ".harness/project-context.md",
+    ".harness/agents/**",
+    "AGENTS.md",
+    "ORCHESTRATOR.md",
+    "DECISIONS.md"
+  ],
+  "exclude": [
+    "**/target/**",
+    "**/*.sqlite*",
+    "**/.env",
+    "**/node_modules/**"
+  ],
+  "sourcePriority": {
+    "manifest": 1,
+    "projectContext": 2,
+    "agents": 3,
+    "obsidian": 4,
+    "code": 5
+  }
+}

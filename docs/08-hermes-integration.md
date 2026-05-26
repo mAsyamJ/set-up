@@ -9,8 +9,36 @@ Telegram → hermes-gateway → Harness MCP + Hivemind
                 ↓                    ↓
          hermes-harness-operator   Tool Gateway → RAG / tasks / Obsidian
                 ↓
-         bridge :8787 → Cursor/Kiro (Kanban workers)
+         bridge :8787 → operator chat (planning/status)
+                ↓
+         cursor-fleet → @cursor/sdk workers (git worktree per Kanban task)
 ```
+
+**Kanban in a browser** lives at `http://127.0.0.1:9119/kanban?board=…` and is served by **`hermes dashboard`** (port 9119), not by `hermes-gateway`. If the URL fails from Windows on WSL, start `hermes dashboard --host 0.0.0.0 --insecure` (or install `systemd/user/hermes-dashboard.service`) and use `scripts/fix-hermes-kanban-ui.sh` / `scripts/update-wsl-portproxy.sh` as needed.
+
+## Cursor fleet (20-agent headless orchestration)
+
+Kanban **code workers** bypass the bridge. Each task gets an isolated git worktree under `<project>/.harness/worktrees/<taskId>/`.
+
+| Env | Default | Purpose |
+|-----|---------|---------|
+| `AEGIS_CURSOR_FLEET_ENABLED` | `1` | Use fleet instead of `hermes kanban dispatch` for Lane B |
+| `AEGIS_CURSOR_FLEET_QUEUE_MAX` | `20` | Max managed ready+running tasks |
+| `AEGIS_CURSOR_FLEET_MAX_CONCURRENT` | `4` (local) | Active SDK agents (raise on VPS) |
+| `AEGIS_KANBAN_DISPATCH_MAX` | same as concurrent | Dispatch slot cap |
+
+```bash
+cli/harness cursor-fleet doctor
+cli/harness cursor-fleet status
+cli/harness cursor-fleet once
+AEGIS_CURSOR_FLEET_DRY_RUN=1 cli/harness cursor-fleet once
+scripts/aegis-kanban-seed-fleet-wave.sh projects/kreditagent 20
+systemctl --user status cursor-fleet
+```
+
+Bootstrap merges `kanban.dispatch_in_gateway: false` via `scripts/merge-hermes-kanban-fleet.py` so Hermes does not double-spawn workers.
+
+Install: `scripts/install-cursor-fleet-systemd.sh` (also from `install-aegis-headless-24-7.sh`).
 
 ## One-shot bootstrap (Hermes-only operation)
 
@@ -78,7 +106,7 @@ scripts/hermes-harness-cli.sh kreditagent run-task rag.search '{"query":"x402"}'
 |------|---------|------|
 | A | 10m cron | Fleet Kanban stats + stack health → Telegram |
 | O | ~5m timer | Orchestrate + multi-board dispatch |
-| B | Kanban | Workers via bridge |
+| B | Kanban | **cursor-fleet** SDK workers (worktree-isolated); bridge for Telegram chat only |
 
 ## Acceptance (Telegram)
 

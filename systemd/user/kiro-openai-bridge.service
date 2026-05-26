@@ -6,6 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=@AGENT_HARNESS_HOME@/tools/kiro-openai-bridge
+EnvironmentFile=-@HOME@/.hermes/.env
 Environment=AGENT_HARNESS_HOME=@AGENT_HARNESS_HOME@
 Environment=AEGIS_WORKSPACE=@AEGIS_RPC_ROOT@
 Environment=AEGIS_REPO_PATH=@AGENT_HARNESS_HOME@

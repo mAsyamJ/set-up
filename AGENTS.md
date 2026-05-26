@@ -18,7 +18,8 @@ Default workflow: **Hermes** as 24/7 orchestrator; **Cursor/Kiro** as implementa
 | System | Role |
 |--------|------|
 | **Hermes gateway** | Telegram 24/7, skills, `/plan`, Kanban dispatch |
-| **Bridge** (`127.0.0.1:8787`) | Routes to Kiro CLI or headless Cursor |
+| **Bridge** (`127.0.0.1:8787`) | Telegram operator chat → Kiro CLI or headless Cursor |
+| **Cursor fleet** | Kanban workers — `@cursor/sdk` in git worktrees (`cli/harness cursor-fleet`) |
 | **Harness MCP** | Project tools (inspect, RAG, tasks) — Cursor + Hermes |
 | **A2A server** (`127.0.0.1:8790`) | Local agent delegation (security, qa) |
 | **Cursor** | Interactive IDE agent + Task subagents |
@@ -66,6 +67,7 @@ Safe CLI: `scripts/hermes-harness-cli.sh list-projects|switch-project|validate-a
 | Aegis RPC | `projects/aegis-rpc/` | `aegis-hackathon` |
 | KreditAgent | `projects/kreditagent/` | `kreditagent-hackathon` |
 | RetroPick | `projects/retropick/` | `retropick-v1` |
+| ArbEyes DeFi | `projects/defi-lab/arbeyes-defi/` | `arbeyes-defi-v1` |
 | Agentic Ops | `projects/ops/` | `agentic-ops` (marketing/business) |
 
 Registry: `projects/registry.json`. Switch active project:
@@ -116,9 +118,11 @@ Do not conflate Hivemind (org-wide) with harness RAG (project-scoped) or Obsidia
 |------|---------|--------|
 | A | 10m cron | `aegis-pm-tick-10m.sh` |
 | O | 5m timer | `aegis-pm-orchestrate-once.sh` |
-| B | Kanban | `hermes kanban dispatch` |
+| B | Kanban / fleet | `cursor-fleet` daemon or `aegis-kanban-dispatch-once.sh` |
 
-Install: `scripts/install-aegis-headless-24-7.sh`
+Install: `scripts/install-aegis-headless-24-7.sh` (includes cursor-fleet systemd)
+
+Fleet env: `AEGIS_CURSOR_FLEET_MAX_CONCURRENT` (default 4 local), `AEGIS_CURSOR_FLEET_QUEUE_MAX` (20), `AEGIS_KANBAN_DISPATCH_MAX`
 
 ## Rules
 
@@ -133,10 +137,12 @@ Install: `scripts/install-aegis-headless-24-7.sh`
 ## Learned preferences
 
 - Run `aegis-dev` on WSL login to smoke-check stack.
-- Hermes Telegram for coordination; heavy work via Kanban/Cursor.
+- Prefer hands-off setup: run `hermes-bootstrap-harness.sh`, fleet/systemd installs, and validation when asked.
+- Hermes Telegram for coordination; Kanban/cursor-fleet for headless code work (bridge `:8787` for operator chat).
 - After `/provider` switch, send `/reset` in Telegram.
 - Kanban workers must `kanban complete` or `kanban block` before exit.
 - After harness OS changes, run `sync-hermes` and restart `hermes-gateway`.
+- Hermes orchestrates Kanban tasks, not full project autopilot — unblock/replan via Telegram when cards block.
 
 ## Learned workspace facts
 
@@ -146,3 +152,7 @@ Install: `scripts/install-aegis-headless-24-7.sh`
 - Obsidian vault: `~/dev/Project/_vaults/agentic-engineering/` (shared cross-project).
 - Skills canonical: `skills/` + `.skills/` (sync via `cli/harness sync-skills`); Hermes bootstrap: `runtime/hermes/skill-*/`.
 - Generic agents: `agents/*.agent.md`; project roles: `projects/<name>/.harness/agents/`
+- KreditAgent and RetroPick embedded at `projects/kreditagent/` and `projects/retropick/` (copied via `import-external-project.sh`; originals at `~/dev/Project/`).
+- KreditAgent `external/` vendored repos excluded from harness copy; reference via OpenSrc cache.
+- Cursor fleet on WSL: `cursor-fleet.service` (30s ticks); `kanban.dispatch_in_gateway: false` when fleet owns workers.
+- ArbEyes DeFi at `projects/defi-lab/arbeyes-defi/` (registry slug `arbeyes-defi`).

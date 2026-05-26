@@ -13,7 +13,8 @@ globs:
 
 | Component | Role |
 |-----------|------|
-| **Hermes** (`hermes-gateway.service`) | 24/7 Telegram, skills, `/plan`, Kanban |
+| **Hermes** (`hermes-gateway.service`) | 24/7 Telegram, skills, `/plan`, Kanban dispatch + SQLite boards |
+| **Hermes dashboard** (`hermes dashboard`, optional `hermes-dashboard.service`) | Web UI on **9119** — Kanban in browser, config; **not** started by the gateway alone |
 | **Model bridge** (`kiro-openai-bridge.service`, `127.0.0.1:8787`) | OpenAI-compatible backend for Hermes → Kiro **or** headless Cursor Agent |
 | **Kiro CLI** | Primary coding agent in repo (`kiro-cli --agent aegis-orchestrator`) |
 

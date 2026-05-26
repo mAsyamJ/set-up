@@ -42,8 +42,9 @@ case "$CMD" in
     "$HARNESS_ROOT/cli/commands/doctor.sh" "$PROJECT"
     node --import tsx "$HARNESS_ROOT/tools/gateway/index-project.ts" "$PROJECT"
     ;;
+  cursor-fleet)   exec "$HARNESS_ROOT/cli/commands/cursor-fleet.sh" "$@" ;;
   *)
-    echo "Usage: harness {doctor|status|smoke|index-project|obsidian|start-a2a|start-mcp|run-task|...} <project> [args]"
+    echo "Usage: harness {doctor|status|smoke|cursor-fleet|index-project|obsidian|start-a2a|start-mcp|run-task|...} <project> [args]"
     exit 1
     ;;
 esac

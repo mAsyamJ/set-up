@@ -7,9 +7,10 @@ PROJECT="${1:-}"
 TITLE="${2:-}"
 PHASE="${3:-general}"
 KANBAN="${4:-}"
+WORKTREE="${5:-}"
 
 [ -n "$PROJECT" ] && [ -n "$TITLE" ] || {
-  echo "Usage: new-task.sh <project-path> \"title\" [phase] [--kanban]" >&2
+  echo "Usage: new-task.sh <project-path> \"title\" [phase] [--kanban] [--worktree]" >&2
   exit 1
 }
 
@@ -18,6 +19,12 @@ if [ "$PHASE" = "--kanban" ]; then
   PHASE="general"
 fi
 if [ "${5:-}" = "--kanban" ]; then
+  KANBAN=1
+fi
+if [ "$PHASE" = "--worktree" ] || [ "${4:-}" = "--worktree" ] || [ "${5:-}" = "--worktree" ]; then
+  WORKTREE=1
+fi
+if [ "${6:-}" = "--kanban" ]; then
   KANBAN=1
 fi
 
@@ -78,6 +85,12 @@ if [ -n "$KANBAN" ] && command -v hermes >/dev/null 2>&1; then
         sed -i "s/^kanban_id:.*/kanban_id: ${KANBAN_ID}/" "$FILE"
       fi
       echo "Linked kanban_id: ${KANBAN_ID}"
+      if [ -n "$WORKTREE" ] && [ -f "$SCRIPT_DIR/../../scripts/lib/worktree-pool.sh" ]; then
+        # shellcheck source=../../scripts/lib/worktree-pool.sh
+        source "$SCRIPT_DIR/../../scripts/lib/worktree-pool.sh"
+        wt="$(worktree_allocate "$PROJECT" "$KANBAN_ID")"
+        echo "Pre-allocated worktree: $wt"
+      fi
     fi
   else
     echo "WARN: hermes kanban create failed (task file still created)" >&2

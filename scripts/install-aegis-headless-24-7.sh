@@ -26,7 +26,21 @@ echo "=== 3. Lane O timer (~5m orchestrate + dispatch + optional extra waves) ==
 "${SCRIPT_DIR}/install-aegis-kanban-dispatch-timer.sh"
 chmod +x "${SCRIPT_DIR}/aegis-pm-orchestrate-once.sh" \
   "${SCRIPT_DIR}/aegis-d3-deploy-once.sh" \
-  "${SCRIPT_DIR}/aegis-kanban-seed-plan-backlog.sh" 2>/dev/null || true
+  "${SCRIPT_DIR}/aegis-kanban-seed-plan-backlog.sh" \
+  "${SCRIPT_DIR}/aegis-kanban-seed-fleet-wave.sh" \
+  "${SCRIPT_DIR}/install-cursor-fleet-systemd.sh" 2>/dev/null || true
+
+echo
+echo "=== 3b. Cursor fleet daemon (Kanban workers via worktree-isolated SDK) ==="
+if [ -x "${SCRIPT_DIR}/install-cursor-fleet-systemd.sh" ]; then
+  bash "${SCRIPT_DIR}/install-cursor-fleet-systemd.sh" || true
+  systemctl --user enable cursor-fleet.service 2>/dev/null || true
+  systemctl --user restart cursor-fleet.service 2>/dev/null || true
+  echo "OK   cursor-fleet.service (max concurrent default 4, queue 20)"
+fi
+if [ -f "${SCRIPT_DIR}/merge-hermes-kanban-fleet.py" ]; then
+  python3 "${SCRIPT_DIR}/merge-hermes-kanban-fleet.py" "${HOME}/.hermes/config.yaml" || true
+fi
 
 echo
 echo "=== 4. Secrets health ==="

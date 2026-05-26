@@ -23,7 +23,7 @@ End-to-end loop from human intent to verified output:
 1. **Human** coordinates primarily via **Telegram (Hermes)**; Cursor IDE (Harness MCP) and `cli/harness` are secondary surfaces for implementation.
 2. **Hermes gateway** (systemd) holds skills, cron jobs, Kanban boards, Hivemind MCP, and **Harness MCP** (after `sync-hermes`).
 3. **Work** is represented as Hermes Kanban cards (per-project board) plus markdown in `.harness/tasks/{backlog,active,review,done,blocked}/`.
-4. **Lane O** (systemd timer ~5m) seeds backlog and opens the dispatch gate; **Lane B** runs Kanban workers through the bridge into `AEGIS_WORKSPACE`.
+4. **Lane O** (systemd timer ~5m) seeds backlog and opens the dispatch gate; **Lane B** runs **cursor-fleet** workers (git worktree + SDK) or bridge fallback.
 5. **Tool Gateway** gates every typed action (R0–R5 policy) — no arbitrary shell by default.
 6. **RAG + Obsidian** ground agents with citations and trust labels; vault notes are reference-only.
 7. **State** lands in SQLite (`harness.sqlite`, `rag.sqlite`) and Obsidian run summaries under `06-Runs/`.
@@ -64,7 +64,9 @@ flowchart TB
   HMCP --> GW2
   SW --> REG
   SW --> BR
-  KB -->|"dispatch Lane B"| BR
+  KB -->|"dispatch Lane B"| FLEET[cursor-fleet]
+  FLEET --> SDKW[SDK workers]
+  GW --> BR
   BR --> CUR
   BR --> KIR
   GW2 --> RAG
@@ -120,13 +122,14 @@ Vault: `~/dev/Project/_vaults/agentic-engineering/` — shared across projects, 
 
 ## Multi-project operation
 
-Four registry entries today — three product codebases plus **Agentic Ops** for marketing/business. Each has its own Kanban board, RAG index, Obsidian project note, and manifest.
+Five registry entries today — four product codebases plus **Agentic Ops** for marketing/business. Each has its own Kanban board, RAG index, Obsidian project note, and manifest.
 
 | Project | Path | Kanban board | Display name |
 |---------|------|--------------|--------------|
 | Aegis RPC | `projects/aegis-rpc/` | `aegis-hackathon` | Aegis RPC |
 | KreditAgent | `projects/kreditagent/` | `kreditagent-hackathon` | KreditAgent |
 | RetroPick | `projects/retropick/` | `retropick-v1` | RetroPick |
+| ArbEyes DeFi | `projects/defi-lab/arbeyes-defi/` | `arbeyes-defi-v1` | ArbEyes DeFi |
 | Agentic Ops | `projects/ops/` | `agentic-ops` | Marketing / business / GTM |
 
 Registry: [projects/registry.json](projects/registry.json). Kanban workspace must use **absolute paths**: `dir:/home/.../projects/<name>`.
@@ -166,14 +169,18 @@ curl -sf http://127.0.0.1:8787/health | python3 -m json.tool
 | [scripts/harness-validate-all-projects.sh](scripts/harness-validate-all-projects.sh) | Fleet doctor + RAG + Kanban + OpenSrc checks |
 | [scripts/import-external-project.sh](scripts/import-external-project.sh) | Copy external repo into `projects/<slug>` |
 | [scripts/kanban-init-project-board.sh](scripts/kanban-init-project-board.sh) | Create board + seed smoke task |
+| [scripts/write-harness-active-context.py](scripts/write-harness-active-context.py) | Writes `~/.hermes/harness-active-context.json` (Hermes dashboard + Kanban hint) — run via `switch-project` |
 | [scripts/kreditagent-opensrc-cache.sh](scripts/kreditagent-opensrc-cache.sh) | OpenSrc paths for KreditAgent study repos (no vendored `external/`) |
 | [scripts/hermes-bootstrap-harness.sh](scripts/hermes-bootstrap-harness.sh) | One-shot Hermes ↔ Harness wiring for full registry |
 
-Kanban UI (per board):
+Kanban UI (per board) is served by **`hermes dashboard`** on port **9119** — not by `hermes-gateway`. Start it with `hermes dashboard` (or enable `hermes-dashboard.service` from `systemd/user/`). WSL + Windows: bind `--host 0.0.0.0` and use `scripts/fix-hermes-kanban-ui.sh` or `scripts/update-wsl-portproxy.sh` if `localhost:9119` does not forward.
+
+After `cli/harness switch-project <name>`, Harness writes **`~/.hermes/harness-active-context.json`** (roles from `.harness/agents/`, Kanban board, and **`harness_home`** so the Hermes dashboard can locate `projects/registry.json`). Hermes **Profiles** remain global worker identities; the Kanban UI shows a harness banner when the board slug matches that snapshot. The **Profiles** page includes a **product switcher** (runs `cli/harness switch-project` from that checkout) plus the active harness roster above the Hermes profile cards.
 
 - Aegis: http://127.0.0.1:9119/kanban?board=aegis-hackathon
 - KreditAgent: http://127.0.0.1:9119/kanban?board=kreditagent-hackathon
 - RetroPick: http://127.0.0.1:9119/kanban?board=retropick-v1
+- ArbEyes DeFi: http://127.0.0.1:9119/kanban?board=arbeyes-defi-v1
 - Agentic Ops: http://127.0.0.1:9119/kanban?board=agentic-ops
 
 Create a task (always use absolute workspace):
@@ -203,7 +210,7 @@ scripts/hermes-bootstrap-harness.sh    # sync skills, index fleet, validate, res
 
 | Your goal | Hermes switches to | Tools |
 |-----------|-------------------|-------|
-| Product code | `aegis-rpc`, `kreditagent`, `retropick` | `harness_switch_project`, RAG, Kanban dispatch |
+| Product code | `aegis-rpc`, `kreditagent`, `retropick`, `arbeyes-defi` | `harness_switch_project`, RAG, Kanban dispatch |
 | Marketing / business / GTM | `ops` | Obsidian vault, ops RAG, board `agentic-ops` |
 | Org memory | (any) | `hivemind_search` |
 | Fleet health | (read-only) | `hermes-harness-cli validate-all` |
@@ -264,13 +271,34 @@ One-shot post-upgrade: `scripts/post-harness-upgrade-sync.sh projects/aegis-rpc`
 |------|---------|--------|--------------|
 | **A** | Hermes cron ~10m | `aegis-pm-tick-10m.sh` | Stats on **all registry boards**, bridge/gateway health → Telegram (no LLM) |
 | **O** | systemd timer ~5m | `aegis-pm-orchestrate-once.sh` | D3 deploy gate (aegis only), seed backlog, multi-board dispatch |
-| **B** | Kanban ready work | `aegis-kanban-dispatch-once.sh` | `hermes kanban dispatch --max 2` via bridge when healthy |
+| **B** | Kanban ready work | `aegis-kanban-dispatch-once.sh` | **cursor-fleet** (default) or `hermes kanban dispatch` when fleet disabled |
 
 Install lanes A + O: `scripts/install-aegis-headless-24-7.sh`
 
 Fleet doctor cron (optional, every 6h): [runtime/hermes/schedules/fleet-doctor.cron.md](runtime/hermes/schedules/fleet-doctor.cron.md) — runs `validate-all` across registry.
 
 When `AEGIS_KANBAN_BOARD` is unset, dispatch iterates **all registry boards** with ready work.
+
+### Cursor fleet (20-agent headless orchestration)
+
+Kanban code workers run via **cursor-fleet** — one git worktree per task, `@cursor/sdk` or `agent` CLI, bypassing the bridge.
+
+| Env | Default | Purpose |
+|-----|---------|---------|
+| `AEGIS_CURSOR_FLEET_MAX_CONCURRENT` | `4` | Active agents (raise to `20` on VPS) |
+| `AEGIS_CURSOR_FLEET_QUEUE_MAX` | `20` | Managed task queue depth |
+| `AEGIS_KANBAN_DISPATCH_MAX` | same as concurrent | Slot-aware dispatch |
+
+```bash
+cli/harness cursor-fleet doctor
+cli/harness cursor-fleet status
+cli/harness cursor-fleet once
+AEGIS_CURSOR_FLEET_DRY_RUN=1 cli/harness cursor-fleet once
+scripts/aegis-kanban-seed-fleet-wave.sh projects/kreditagent 20
+systemctl --user enable --now cursor-fleet.service
+```
+
+Bootstrap sets `kanban.dispatch_in_gateway: false` in `~/.hermes/config.yaml` to prevent double-spawn.
 
 ### Hermes-safe CLI (Telegram path)
 
@@ -319,6 +347,7 @@ bash scripts/harness-validate-all-projects.sh  # all registry entries
 hermes kanban --board aegis-hackathon stats
 hermes kanban --board kreditagent-hackathon stats
 hermes kanban --board retropick-v1 stats
+hermes kanban --board arbeyes-defi-v1 stats
 hermes kanban --board agentic-ops stats
 scripts/hermes-harness-cli.sh validate-all
 curl -sf http://127.0.0.1:8787/health       # verify workspace field
@@ -331,7 +360,7 @@ systemctl --user is-active hermes-gateway kiro-openai-bridge
 | `rag.sqlite` | Exists under `<project>/.harness/state/` after `index-project` |
 | Kanban stats | `hermes kanban --board <board> stats` succeeds |
 | Bridge | `/health` returns JSON; `workspace` matches active project |
-| OpenSrc (kreditagent) | `.harness/research/opensrc-paths/*.path` populated |
+| OpenSrc paths | `.harness/research/opensrc-paths/*.path` populated where external study repos are used |
 
 Logs:
 
@@ -352,6 +381,7 @@ bash scripts/harness-validate-all-projects.sh
 hermes kanban --board aegis-hackathon stats
 hermes kanban --board kreditagent-hackathon stats
 hermes kanban --board retropick-v1 stats
+hermes kanban --board arbeyes-defi-v1 stats
 hermes kanban --board agentic-ops stats
 scripts/hermes-harness-cli.sh validate-all
 curl -sf http://127.0.0.1:8787/health | python3 -c "import sys,json; d=json.load(sys.stdin); print('workspace:', d.get('workspace'))"
@@ -384,18 +414,19 @@ cli/harness run-task projects/kreditagent .harness/tasks/backlog/add-x402-middle
 
 ---
 
-### 3 — Telegram-coordinated Kanban dispatch (Lane B)
+### 3 — Telegram-coordinated Kanban dispatch (Lane B / cursor-fleet)
 
 ```bash
 cli/harness switch-project retropick
 hermes kanban --board retropick-v1 create "Implement epoch API stub" \
-  --workspace "dir:$AEGIS_RPC_ROOT" \
+  --workspace "dir:$AGENT_HARNESS_HOME/projects/retropick" \
   --assignee aegis-builder
 
-# Dry-run dispatch gate (no workers spawned):
-AEGIS_KANBAN_DRY_RUN=1 scripts/aegis-kanban-dispatch-once.sh
+# Fleet dispatch (worktree-isolated SDK workers):
+cli/harness cursor-fleet once
 
-# Live dispatch (bridge must be healthy):
+# Legacy bridge dispatch (AEGIS_CURSOR_FLEET_ENABLED=0):
+AEGIS_KANBAN_DRY_RUN=1 scripts/aegis-kanban-dispatch-once.sh
 scripts/aegis-kanban-dispatch-once.sh
 ```
 
@@ -768,7 +799,7 @@ scripts/hermes-harness-cli.sh validate-all   # or: bash scripts/harness-validate
 | Scheduled doctor | `cli/harness start-hermes-doctor projects/<name>` |
 | Gateway / bridge logs | `journalctl --user -u hermes-gateway -f -l` |
 | Restart stack | `systemctl --user restart aegis-stack.target` |
-| Kanban UI | `http://127.0.0.1:9119/kanban?board=<board>` |
+| Kanban UI | `hermes dashboard` then `http://127.0.0.1:9119/kanban?board=<board>` |
 
 Source persisted project env: `source "$AGENT_HARNESS_HOME/.harness/state/active-project.env"`
 
@@ -785,6 +816,7 @@ cli/harness doctor <project>
 cli/harness status <project>
 cli/harness smoke <project>
 cli/harness switch-project <name>       # registry lookup; sync-hermes; updates bridge workspace (--no-restart optional)
+cli/harness cursor-fleet once|status|doctor|start
 cli/harness sync-hermes <project>       # skills + harness MCP into Hermes
 ```
 
@@ -904,7 +936,12 @@ Details: [core/lifecycle/task-lifecycle.md](core/lifecycle/task-lifecycle.md)
 | `AEGIS_KANBAN_BOARD` | from manifest | PM/dispatch board (set by `switch-project`) |
 | `KIRO_BRIDGE_URL` | `http://127.0.0.1:8787` | Bridge base URL |
 | `HARNESS_A2A_PORT` | `8790` | A2A server port |
-| `CURSOR_BRIDGE_MODE` | `agent` | `agent` \| `ask` \| `plan` |
+| `CURSOR_BRIDGE_MODE` | `agent` | `agent` \| `ask` \| `plan` (Telegram bridge) |
+| `AEGIS_CURSOR_FLEET_ENABLED` | `1` | Kanban workers via cursor-fleet |
+| `AEGIS_CURSOR_FLEET_MAX_CONCURRENT` | `4` | Active SDK agents (local default) |
+| `AEGIS_CURSOR_FLEET_QUEUE_MAX` | `20` | Managed fleet queue depth |
+| `AEGIS_KANBAN_DISPATCH_MAX` | fleet concurrent | Slot-aware Hermes dispatch |
+| `AEGIS_CURSOR_FLEET_NODE_ID` | `local-wsl` | Fleet node id (VPS later) |
 
 Persisted state: `.harness/state/active-project.env` (written by `switch-project`).
 
@@ -934,7 +971,11 @@ Secrets go in **`~/.hermes/.env`** or project **gitignored** `.env` — never in
 | [scripts/install-systemd-user.sh](scripts/install-systemd-user.sh) | Bridge + gateway units |
 | [scripts/start-aegis-dev.sh](scripts/start-aegis-dev.sh) | Daily smoke (`aegis-dev`) |
 | [scripts/aegis-model.sh](scripts/aegis-model.sh) | Switch Kiro ↔ Cursor |
-| [scripts/aegis-kanban-dispatch-once.sh](scripts/aegis-kanban-dispatch-once.sh) | Lane B dispatch (multi-board) |
+| [scripts/aegis-kanban-dispatch-once.sh](scripts/aegis-kanban-dispatch-once.sh) | Lane B dispatch → cursor-fleet |
+| [scripts/install-cursor-fleet-systemd.sh](scripts/install-cursor-fleet-systemd.sh) | cursor-fleet systemd units |
+| [scripts/aegis-kanban-seed-fleet-wave.sh](scripts/aegis-kanban-seed-fleet-wave.sh) | Seed up to 20 fleet test tasks |
+| [scripts/lib/worktree-pool.sh](scripts/lib/worktree-pool.sh) | Git worktree allocate/release |
+| [runtime/cursor-fleet/](runtime/cursor-fleet/) | Fleet manager (Kanban poller + SDK workers) |
 | [scripts/aegis-pm-orchestrate-once.sh](scripts/aegis-pm-orchestrate-once.sh) | Lane O orchestrate |
 | [scripts/aegis-pm-tick-10m.sh](scripts/aegis-pm-tick-10m.sh) | Lane A PM status |
 | [scripts/harness-validate-all-projects.sh](scripts/harness-validate-all-projects.sh) | Fleet validation |

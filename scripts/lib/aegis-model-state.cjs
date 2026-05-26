@@ -60,8 +60,28 @@ function listProviders() {
   return KNOWN_MODELS.slice();
 }
 
+function readHermesDotEnv() {
+  const envPath = path.join(process.env.HOME || "", ".hermes/.env");
+  if (!fs.existsSync(envPath)) return {};
+  const out = {};
+  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+    const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!m) continue;
+    let v = m[2].trim();
+    if (
+      (v.startsWith('"') && v.endsWith('"')) ||
+      (v.startsWith("'") && v.endsWith("'"))
+    ) {
+      v = v.slice(1, -1);
+    }
+    out[m[1]] = v;
+  }
+  return out;
+}
+
 function isCursorConfigured() {
-  if (Boolean(process.env.CURSOR_API_KEY?.trim())) {
+  const hermesEnv = readHermesDotEnv();
+  if (Boolean(process.env.CURSOR_API_KEY?.trim() || hermesEnv.CURSOR_API_KEY?.trim())) {
     return true;
   }
   try {

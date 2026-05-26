@@ -113,10 +113,10 @@ else
   "${SCRIPT_DIR}/aegis-kanban-dispatch-once.sh"
 fi
 
-# Same timer tick: extra dispatch waves when ready>0 and worker slots are free (hands-off drain).
-# Hermes typically allows up to --max 2 concurrent runs; avoid stacking while running>=2.
+# Extra dispatch waves when ready>0 and worker slots are free (hands-off drain).
 extra_waves="${AEGIS_KANBAN_EXTRA_DISPATCH_WAVES:-4}"
 wave_sleep="${AEGIS_KANBAN_WAVE_SLEEP_SEC:-45}"
+dispatch_max="${AEGIS_KANBAN_DISPATCH_MAX:-${AEGIS_CURSOR_FLEET_MAX_CONCURRENT:-4}}"
 if ! [[ "$extra_waves" =~ ^[0-9]+$ ]]; then
   extra_waves=4
 fi
@@ -135,8 +135,8 @@ if [ "$extra_waves" -gt 0 ]; then
       echo "aegis-pm-orchestrate-once: extra wave stop — ready=$ready"
       break
     fi
-    if [ "$running" -ge 2 ]; then
-      echo "aegis-pm-orchestrate-once: extra wave stop — slots full (running=$running)"
+    if [ "$running" -ge "$dispatch_max" ]; then
+      echo "aegis-pm-orchestrate-once: extra wave stop — slots full (running=$running max=$dispatch_max)"
       break
     fi
     echo "aegis-pm-orchestrate-once: extra dispatch wave $((wave + 1))/${extra_waves} (ready=$ready running=$running)"

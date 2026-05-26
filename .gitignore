@@ -71,6 +71,7 @@ dist/
 *.sqlite3
 .harness/state/
 **/.harness/state/
+**/.harness/worktrees/
 
 # Env files
 .env

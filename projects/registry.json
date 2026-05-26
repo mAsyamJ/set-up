@@ -21,6 +21,11 @@
       "path": "projects/ops",
       "kanban": "agentic-ops",
       "displayName": "Agentic Ops"
+    },
+    "arbeyes-defi": {
+      "path": "projects/defi-lab/arbeyes-defi",
+      "kanban": "arbeyes-defi-v1",
+      "displayName": "ArbEyes DeFi"
     }
   }
 }

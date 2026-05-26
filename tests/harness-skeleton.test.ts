@@ -10,6 +10,7 @@ describe("harness skeleton", () => {
   it("has systemd bridge and dispatch units", () => {
     assert.ok(fs.existsSync(path.join(root, "systemd/user/kiro-openai-bridge.service")));
     assert.ok(fs.existsSync(path.join(root, "systemd/user/aegis-kanban-dispatch.service")));
+    assert.ok(fs.existsSync(path.join(root, "systemd/user/cursor-fleet.service")));
   });
 
   it("has tool policy and gateway", () => {
@@ -30,5 +31,7 @@ describe("harness skeleton", () => {
     assert.ok(fs.existsSync(path.join(root, "runtime/hermes/skill-agent-harness-os/SKILL.md")));
     assert.ok(fs.existsSync(path.join(root, "scripts/merge-hermes-harness-mcp.py")));
     assert.ok(fs.existsSync(path.join(root, "cli/commands/sync-hermes.sh")));
+    assert.ok(fs.existsSync(path.join(root, "runtime/cursor-fleet/src/fleet-manager.ts")));
+    assert.ok(fs.existsSync(path.join(root, "scripts/lib/worktree-pool.sh")));
   });
 });

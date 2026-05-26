@@ -1,0 +1,31 @@
+{
+  "enabled": true,
+  "vaultPath": "~/dev/Project/_vaults/agentic-engineering",
+  "projectNotePath": "01-Projects/ArbEyes-DeFi/_index.md",
+  "projectSlug": "arbeyes-defi",
+  "projectDisplayName": "ArbEyes DeFi",
+  "writePolicy": {
+    "allowCreateNotes": true,
+    "allowUpdateIndex": true,
+    "allowModifyExistingNotes": false,
+    "requireFrontmatter": true
+  },
+  "sync": {
+    "runSummaries": true,
+    "decisions": true,
+    "research": true,
+    "tasks": "summary-only",
+    "traces": "summary-only"
+  },
+  "rag": {
+    "includeInProjectRetrieval": true,
+    "includeFolders": [
+      "01-Projects/ArbEyes-DeFi",
+      "02-Agents",
+      "03-Skills",
+      "04-Research/MCP",
+      "07-Patterns"
+    ],
+    "excludeFolders": ["99-Archive", "00-Inbox/unsorted"]
+  }
+}

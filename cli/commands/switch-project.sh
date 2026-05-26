@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Switch active harness project: env vars, Hermes MCP merge, sync-hermes, optional bridge restart.
+# Switch active harness project: env vars, Hermes MCP merge, sync-hermes.
+# Bridge reads active-project.env per request — no restart by default.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,11 +9,32 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../scripts/lib/project-manifest.sh
 . "$SCRIPT_DIR/../../scripts/lib/project-manifest.sh"
 
+DEBUG_LOG="${AGENT_HARNESS_HOME}/.cursor/debug-5d3eff.log"
+
+_agent_debug() {
+  local message="$1" data="$2" hyp="$3"
+  python3 - <<PY 2>/dev/null || true
+import json, time
+payload = {
+  "sessionId": "5d3eff",
+  "timestamp": int(time.time() * 1000),
+  "location": "switch-project.sh",
+  "message": ${message@Q},
+  "data": json.loads(${data@Q}),
+  "hypothesisId": ${hyp@Q},
+  "runId": __import__("os").environ.get("AEGIS_DEBUG_RUN_ID", "pre-fix"),
+}
+with open(${DEBUG_LOG@Q}, "a", encoding="utf-8") as f:
+  f.write(json.dumps(payload) + "\n")
+PY
+}
+
 NAME=""
-NO_RESTART=0
+RESTART_BRIDGE=0
 for arg in "$@"; do
   case "$arg" in
-    --no-restart) NO_RESTART=1 ;;
+    --restart-bridge) RESTART_BRIDGE=1 ;;
+    --no-restart) ;; # legacy alias: default is already no restart
     -*) echo "Unknown flag: $arg" >&2; exit 1 ;;
     *)
       [ -z "$NAME" ] && NAME="$arg"
@@ -21,7 +43,7 @@ for arg in "$@"; do
 done
 
 [ -n "$NAME" ] || {
-  echo "Usage: switch-project.sh <project-name> [--no-restart]" >&2
+  echo "Usage: switch-project.sh <project-name> [--restart-bridge]" >&2
   echo "  Projects: $(list_registry_project_names | tr '\n' ' ')" >&2
   exit 1
 }
@@ -56,6 +78,10 @@ echo "AEGIS_WORKSPACE=$ROOT"
 echo "AEGIS_KANBAN_BOARD=${BOARD:-}"
 echo
 
+# #region agent log
+_agent_debug "project switched" "{\"project\":\"$NAME\",\"root\":\"$ROOT\",\"restartBridge\":$RESTART_BRIDGE}" "H2"
+# #endregion
+
 if [ -x "$AGENT_HARNESS_HOME/scripts/merge-hermes-harness-mcp.sh" ]; then
   echo "Merging Hermes harness MCP..."
   bash "$AGENT_HARNESS_HOME/scripts/merge-hermes-harness-mcp.sh" "$ROOT" || true
@@ -66,7 +92,7 @@ if [ -x "$AGENT_HARNESS_HOME/cli/harness" ]; then
   "$AGENT_HARNESS_HOME/cli/harness" sync-hermes "$ROOT" || true
 fi
 
-if [ "$NO_RESTART" -eq 0 ] && [ -d "${HOME}/.config/systemd/user" ]; then
+if [ "$RESTART_BRIDGE" -eq 1 ] && [ -d "${HOME}/.config/systemd/user" ]; then
   DROPIN_DIR="${HOME}/.config/systemd/user/kiro-openai-bridge.service.d"
   DROPIN="${DROPIN_DIR}/harness-workspace.conf"
   mkdir -p "$DROPIN_DIR"
@@ -80,9 +106,12 @@ EOF
     systemctl --user daemon-reload 2>/dev/null || true
     if systemctl --user is-active --quiet kiro-openai-bridge.service 2>/dev/null; then
       systemctl --user restart kiro-openai-bridge.service 2>/dev/null || true
-      echo "Restarted kiro-openai-bridge with workspace=$ROOT"
+      echo "Restarted kiro-openai-bridge (--restart-bridge)"
+      _agent_debug "bridge restarted" "{\"project\":\"$NAME\"}" "H2"
     fi
   fi
+else
+  echo "Bridge workspace: hot-reload via active-project.env (no restart)"
 fi
 
 echo
@@ -90,3 +119,9 @@ echo "Active project: $NAME"
 echo "Kanban board:   ${BOARD:-unknown}"
 echo "State file:     $STATE_DIR/active-project.env"
 echo "Harness MCP reads active-project.env on each tool call — gateway restart optional."
+
+# Snapshot harness roles for Hermes dashboard / Kanban (see harness-active-context.json).
+WRITER="${AGENT_HARNESS_HOME}/scripts/write-harness-active-context.py"
+if [ -f "$WRITER" ]; then
+  python3 "$WRITER" "$ROOT" || echo "warning: write-harness-active-context.py failed (non-fatal)" >&2
+fi

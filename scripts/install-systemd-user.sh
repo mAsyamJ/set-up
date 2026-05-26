@@ -17,7 +17,7 @@ if [ ! -f "$MODEL_STATE" ]; then
   echo "Seeded $MODEL_STATE (default: kiro-current)"
 fi
 
-for unit in kiro-openai-bridge.service hermes-gateway.service aegis-stack.target aegis-kanban-dispatch.service wsl-portproxy-refresh.service; do
+for unit in kiro-openai-bridge.service hermes-gateway.service aegis-stack.target aegis-kanban-dispatch.service cursor-fleet.service wsl-portproxy-refresh.service; do
   src="${UNIT_SRC}/${unit}"
   dst="${UNIT_DST}/${unit}"
   if [ ! -f "$src" ]; then
@@ -27,7 +27,7 @@ for unit in kiro-openai-bridge.service hermes-gateway.service aegis-stack.target
   if grep -q '@AGENT_HARNESS_HOME@' "$src" 2>/dev/null; then
     AEGIS_NODE_DIR="$(dirname "${AEGIS_NODE:-$(command -v node)}")"
     rm -f "$dst"
-    sed "s|@AGENT_HARNESS_HOME@|${AGENT_HARNESS_HOME}|g; s|@AEGIS_RPC_ROOT@|${AEGIS_RPC_ROOT}|g; s|@AEGIS_NODE@|${AEGIS_NODE:-$(command -v node)}|g; s|@AEGIS_NODE_DIR@|${AEGIS_NODE_DIR}|g" "$src" > "$dst"
+    sed "s|@AGENT_HARNESS_HOME@|${AGENT_HARNESS_HOME}|g; s|@AEGIS_RPC_ROOT@|${AEGIS_RPC_ROOT}|g; s|@AEGIS_NODE@|${AEGIS_NODE:-$(command -v node)}|g; s|@AEGIS_NODE_DIR@|${AEGIS_NODE_DIR}|g; s|@HOME@|${HOME}|g" "$src" > "$dst"
     echo "Installed $dst (from template with paths)"
   else
     ln -sf "$src" "$dst"
@@ -81,7 +81,13 @@ elif [ -x "${AGENT_HARNESS_HOME}/cli/harness" ]; then
 fi
 
 chmod +x "${AEGIS_REPO_ROOT}/scripts/aegis-secrets-health.sh" \
-  "${AEGIS_REPO_ROOT}/scripts/aegis-secrets-maintain.sh" 2>/dev/null || true
+  "${AEGIS_REPO_ROOT}/scripts/aegis-secrets-maintain.sh" \
+  "${AEGIS_REPO_ROOT}/scripts/install-cursor-fleet-systemd.sh" \
+  "${AGENT_HARNESS_HOME}/cli/commands/cursor-fleet.sh" 2>/dev/null || true
+
+if [ -x "${AGENT_HARNESS_HOME}/scripts/install-cursor-fleet-systemd.sh" ]; then
+  bash "${AGENT_HARNESS_HOME}/scripts/install-cursor-fleet-systemd.sh" || true
+fi
 
 # Legacy path: direct kiro-cli Telegram bot (no Hivemind hooks). Keep disabled.
 if systemctl --user list-unit-files telegram-kiro-gateway.service &>/dev/null; then

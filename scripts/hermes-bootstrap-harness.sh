@@ -34,6 +34,19 @@ while IFS= read -r name; do
 done < <(list_registry_project_names)
 
 echo
+echo "=== cursor fleet config ==="
+if [ -f "$SCRIPT_DIR/merge-hermes-kanban-fleet.py" ]; then
+  python3 "$SCRIPT_DIR/merge-hermes-kanban-fleet.py" "${HOME}/.hermes/config.yaml" || true
+fi
+
+if [ -x "$SCRIPT_DIR/install-cursor-fleet-systemd.sh" ]; then
+  bash "$SCRIPT_DIR/install-cursor-fleet-systemd.sh" 2>/dev/null || true
+  systemctl --user enable cursor-fleet.service 2>/dev/null || true
+  systemctl --user restart cursor-fleet.service 2>/dev/null || true
+  echo "OK: cursor-fleet service enabled (best-effort)"
+fi
+
+echo
 echo "=== fleet validation ==="
 bash "$SCRIPT_DIR/harness-validate-all-projects.sh" || true
 

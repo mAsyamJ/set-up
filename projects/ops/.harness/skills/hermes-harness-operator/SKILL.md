@@ -22,7 +22,17 @@ For any user goal:
 3. **Ground** — `harness_project_inspect` + `harness_rag_search` before planning
 4. **Track** — `harness_task_create` or Hermes Kanban `create` on the project's board
 5. **Capture notes** — `obsidian capture` (via hermes-harness-cli) for free-form human knowledge
-6. **Implement code** — Kanban dispatch + bridge workers when product code must change
+6. **Implement code** — **cursor-fleet** (headless SDK workers in git worktrees) or `cli/harness cursor-fleet once`
+
+## Cursor fleet (Kanban workers)
+
+- **Telegram chat** → bridge `:8787` (planning, status)
+- **Kanban code tasks** → `cursor-fleet` service (worktree per task, up to 20 queued, 4 concurrent local default)
+
+```bash
+cli/harness cursor-fleet status
+cli/harness cursor-fleet once
+```
 
 ## Goal routing
 

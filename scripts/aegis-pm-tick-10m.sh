@@ -145,7 +145,7 @@ echo
 
 echo "Next actions:"
 if hermes kanban --board "$BOARD" list 2>/dev/null | kb_filter -q 'ready'; then
-  echo "  1. Wait for aegis-kanban-dispatch.timer OR: hermes kanban --board $BOARD dispatch --max 2"
+  echo "  1. Wait for cursor-fleet.service OR: cli/harness cursor-fleet once"
 else
   echo "  1. scripts/aegis-pm-orchestrate-once.sh (sync D3 + seed + dispatch)"
 fi
