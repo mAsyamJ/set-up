@@ -1,0 +1,35 @@
+# Generated OpenSrc coordinates for MEV Share Backrun Flashloan Arbitrage (V1 shadow scanner).
+# Clone locally via your org's OpenSrc workflow; when a clone exists, create a matching
+# .harness/research/opensrc-paths/<org>__<repo>.path file whose body is the absolute path
+# to the checked-out root (see example in arbeyes-defi).
+#
+# Primary BUILD NOW study sources (see docs/0_opensrc_research.md "Build-now source repos"):
+
+github.com/flashbots/simple-blind-arbitrage
+github.com/flashbots/mev-share
+github.com/paradigmxyz/mev-share-rs
+github.com/alloy-rs/alloy
+github.com/foundry-rs/foundry
+
+# DEX / protocol references for v2-style adapters and pool semantics (study; adapters limited to v2/sushi in V1):
+github.com/Uniswap/v2-core
+github.com/Uniswap/v2-periphery
+github.com/sushiswap/v2-core
+github.com/sushiswap/v2-periphery
+github.com/aave/aave-v3-core
+github.com/aave/aave-address-book
+github.com/balancer/balancer-v2-monorepo
+
+# Core Rust crates (for patterns, not vendoring):
+crates:tokio
+crates:reqwest
+crates:serde
+crates:sqlx
+crates:tracing
+crates:tracing-subscriber
+crates:metrics
+crates:metrics-exporter-prometheus
+crates:dashmap
+crates:lru
+crates:eyre
+crates:color-eyre

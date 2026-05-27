@@ -1,0 +1,61 @@
+{
+  "schema": "agent-harness.project.v1",
+  "project": {
+    "name": "mev-share-backrun-flashloan-arbitrage",
+    "type": "rust-defi-research",
+    "root": ".",
+    "description": "Rust multi-chain MEV-Share backrun and flashloan-feasibility shadow searcher: broad scanner, deterministic risk gate, Postgres evidence store, and no live execution in V1."
+  },
+  "harness": {
+    "mode": "embedded",
+    "harnessRootEnv": "AGENT_HARNESS_HOME",
+    "defaultHarnessRoot": "../../.."
+  },
+  "kanban": {
+    "board": "mev-share-backrun-v1",
+    "workspace": "dir:${projectRoot}"
+  },
+  "paths": {
+    "product": ["rust-searcher-lab", "config", "infra", "migrations", "scripts"],
+    "docs": ["docs"],
+    "scripts": ["scripts"],
+    "tasks": ".harness/tasks",
+    "state": ".harness/state"
+  },
+  "commands": {
+    "dev": "bash scripts/harness-verify.sh smoke",
+    "typecheck": "bash scripts/harness-verify.sh typecheck",
+    "lint": "bash scripts/harness-verify.sh lint",
+    "test": "bash scripts/harness-verify.sh test",
+    "smoke": "bash scripts/harness-verify.sh smoke",
+    "verify": "bash scripts/harness-verify.sh all"
+  },
+  "agents": {
+    "enabled": [
+      "orchestrator",
+      "rust-core",
+      "rust-evm",
+      "observability",
+      "security-scope",
+      "qa-gate",
+      "opensrc-librarian"
+    ]
+  },
+  "skills": {
+    "enabled": [
+      "systematic-debugging",
+      "tdd",
+      "opensrc-research",
+      "hermes-kiro-runtime",
+      "agent-harness-os",
+      "harness-mcp",
+      "mev-shadow-searcher"
+    ]
+  },
+  "rules": {
+    "noSecrets": true,
+    "requireTaskFile": true,
+    "requireVerification": true,
+    "archiveBeforeDelete": true
+  }
+}

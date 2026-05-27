@@ -50,6 +50,12 @@ echo
 echo "=== fleet validation ==="
 bash "$SCRIPT_DIR/harness-validate-all-projects.sh" || true
 
+echo
+echo "=== hermes cron (script-only kanban tick) ==="
+if [ -x "$SCRIPT_DIR/fix-kanban-orchestrator-cron.sh" ]; then
+  bash "$SCRIPT_DIR/fix-kanban-orchestrator-cron.sh" 2>/dev/null || true
+fi
+
 if command -v systemctl >/dev/null 2>&1; then
   systemctl --user restart kiro-openai-bridge.service 2>/dev/null || true
   systemctl --user restart hermes-gateway.service 2>/dev/null || true

@@ -99,8 +99,56 @@ const PROVIDERS = {
   },
 };
 
-const SSE_HEARTBEAT_MS = Number(process.env.AEGIS_BRIDGE_SSE_HEARTBEAT_MS || 18000);
+const SSE_HEARTBEAT_MS = Number(process.env.AEGIS_BRIDGE_SSE_HEARTBEAT_MS || 12000);
 const BRIDGE_TIMEOUT_CAP_MS = Number(process.env.AEGIS_BRIDGE_TIMEOUT_CAP_MS || 3600000);
+const HERMES_MAX_MESSAGES = Number(process.env.AEGIS_BRIDGE_HERMES_MAX_MESSAGES || 45);
+const CURSOR_AGENT_MAX_MESSAGES = Number(
+  process.env.AEGIS_BRIDGE_CURSOR_AGENT_MAX_MESSAGES || 24
+);
+const PROVIDER_AUTH_CACHE_MS = Number(process.env.AEGIS_BRIDGE_AUTH_CACHE_MS || 30000);
+
+let _providerAuthCache = {
+  at: 0,
+  cursor: false,
+  kiro: false,
+};
+
+async function refreshProviderAuthCache() {
+  const now = Date.now();
+  if (now - _providerAuthCache.at < PROVIDER_AUTH_CACHE_MS) {
+    return _providerAuthCache;
+  }
+  _providerAuthCache.cursor = modelState.isCursorConfigured();
+  try {
+    const { stdout, stderr } = await execFileAsync("kiro-cli", ["whoami"], {
+      cwd: getWorkspace(),
+      timeout: 10000,
+      env: process.env,
+    });
+    const text = String(stdout || stderr || "");
+    _providerAuthCache.kiro = !/not logged in/i.test(text);
+  } catch {
+    _providerAuthCache.kiro = false;
+  }
+  _providerAuthCache.at = now;
+  return _providerAuthCache;
+}
+
+function isCursorReady() {
+  if (Date.now() - _providerAuthCache.at < PROVIDER_AUTH_CACHE_MS) {
+    return _providerAuthCache.cursor;
+  }
+  return modelState.isCursorConfigured();
+}
+
+function hermesSessionLimitMessage(messageCount) {
+  return [
+    `Telegram session too large (${messageCount} messages; bridge max ${HERMES_MAX_MESSAGES}).`,
+    "",
+    "Send **/reset** in Telegram to start fresh.",
+    "For implementation work use **Kanban** or **cursor-fleet** — not long Telegram chat turns.",
+  ].join("\n");
+}
 
 /**
  * Scale subprocess timeout for large Hermes sessions (many messages / big prompt).
@@ -253,21 +301,38 @@ function providerSpawnPlan(prompt) {
   };
 }
 
-function resolveProviderModel(requestModel) {
+function resolveProviderModel(requestModel, { messageCount = 0 } = {}) {
   const requested = String(requestModel || "").trim();
   const known = modelState.listProviders();
   let resolved = known.includes(requested)
     ? requested
     : modelState.getDefaultModel();
 
+  const cursorReady = isCursorReady();
+  const kiroReady = _providerAuthCache.kiro;
+
+  if (resolved === "cursor-composer-2" && !cursorReady) {
+    if (kiroReady) {
+      console.warn(
+        "[model-bridge] cursor-composer-2 not configured; routing to kiro-current"
+      );
+      resolved = "kiro-current";
+    }
+  }
+
+  if (resolved === "kiro-current" && !kiroReady && cursorReady) {
+    console.warn("[model-bridge] kiro-current not logged in; routing to cursor-composer-2");
+    resolved = "cursor-composer-2";
+  }
+
+  // Large Telegram sessions: avoid full Cursor agent runs (30+ min). Use ask mode via callCursor env.
   if (
     resolved === "cursor-composer-2" &&
-    !modelState.isCursorConfigured()
+    messageCount > CURSOR_AGENT_MAX_MESSAGES
   ) {
     console.warn(
-      "[model-bridge] cursor-composer-2 not configured; routing to kiro-current"
+      `[model-bridge] large session (${messageCount} msgs); cursor will use ask mode`
     );
-    resolved = "kiro-current";
   }
 
   // #region agent log
@@ -277,9 +342,11 @@ function resolveProviderModel(requestModel) {
     {
       requestModel: requested || null,
       resolved,
+      messageCount,
       persistedDefault: modelState.getDefaultModel(),
       honoredRequest: known.includes(requested),
-      cursorConfigured: modelState.isCursorConfigured(),
+      cursorReady,
+      kiroReady,
     },
     "H3"
   );
@@ -311,6 +378,21 @@ function parseProviderExecError(err) {
 
 function bridgeErrorPayload(err) {
   const parsed = err?.providerParsed || parseProviderExecError(err);
+  let message = parsed.message;
+
+  if (/connection lost|exceeded max retries|failed to run step/i.test(message)) {
+    message = [
+      "Cursor Agent lost its cloud connection (agent CLI).",
+      "",
+      "Fix for 24/7 Telegram:",
+      "1. Set CURSOR_API_KEY in ~/.hermes/.env (most stable), then: systemctl --user restart kiro-openai-bridge",
+      "2. Or run: kiro-cli login — then /provider kiro in Telegram + /reset",
+      "3. Send /reset if the session is large (>45 messages).",
+      "",
+      `Details: ${parsed.message.split("\n")[0]}`,
+    ].join("\n");
+  }
+
   const type = parsed.isAuthFailure
     ? "authentication_error"
     : parsed.isTimeout
@@ -321,7 +403,7 @@ function bridgeErrorPayload(err) {
     error: {
       message: parsed.isTimeout
         ? `${parsed.message} Local provider exceeded its time limit (large session). Send /reset in Telegram, then use Kanban or scripts/aegis-pm-orchestrate-once.sh for long orchestration — not a single Telegram turn.`
-        : parsed.message,
+        : message,
       type,
       ...(parsed.isAuthFailure
         ? {
@@ -442,11 +524,15 @@ async function callKiro(prompt, { messageCount = 0, workspace } = {}) {
 }
 
 async function callCursor(prompt, { messageCount = 0, workspace } = {}) {
-  if (!modelState.isCursorConfigured()) {
+  if (!isCursorReady()) {
     throw new Error(modelState.CURSOR_NOT_CONFIGURED_MESSAGE);
   }
 
   const ws = workspace || getWorkspace();
+  const useAskMode = messageCount > CURSOR_AGENT_MAX_MESSAGES;
+  const cursorBridgeMode = useAskMode
+    ? "ask"
+    : modelState.getCursorBridgeMode();
 
   const startedAt = Date.now();
   const promptBytes = Buffer.byteLength(prompt, "utf8");
@@ -483,6 +569,7 @@ async function callCursor(prompt, { messageCount = 0, workspace } = {}) {
         ...process.env,
         AEGIS_WORKSPACE: ws,
         AEGIS_REPO_PATH: ws,
+        CURSOR_BRIDGE_MODE: cursorBridgeMode,
         FORCE_COLOR: "0",
         NO_COLOR: "1",
       },
@@ -558,15 +645,15 @@ async function callProvider(providerModel, prompt, { messageCount = 0, workspace
     );
     // #endregion
 
-    if (parsed.isAuthFailure && modelState.isCursorConfigured()) {
+    if (parsed.isAuthFailure && isCursorReady()) {
       console.warn(
         "[model-bridge] Kiro not logged in; auto-fallback to cursor-composer-2"
       );
       // #region agent log
-      debugLog(
+      agentDebugLog(
         "server.js:callProvider:cursor-fallback",
         "falling back to cursor after kiro auth failure",
-        { from: "kiro-current", to: "cursor-composer-2" },
+        { from: "kiro-current", to: "cursor-composer-2", messageCount },
         "H3"
       );
       // #endregion
@@ -624,11 +711,23 @@ function initSseStream(res, id, model) {
   writeSse(res, sseChunk(id, model, { role: "assistant" }));
 }
 
-function writeSseKeepalive(res, id, model) {
-  writeSse(res, sseChunk(id, model, { content: "" }));
+function writeSseKeepalive(res, id, model, seq = 0) {
+  // SSE comments keep the connection alive without polluting assistant content.
+  res.write(`: keepalive ${seq}\n\n`);
   if (typeof res.flush === "function") {
     res.flush();
   }
+}
+
+function writeSseErrorAsContentAndEnd(res, id, model, errorPayload) {
+  const message =
+    errorPayload?.error?.message ||
+    (typeof errorPayload === "string" ? errorPayload : "Provider error.");
+  if (!res.headersSent) {
+    initSseStream(res, id, model);
+  }
+  writeSseContentChunks(res, id, model, message);
+  finishSseStream(res, id, model);
 }
 
 function writeSseContentChunks(res, id, model, content) {
@@ -669,10 +768,13 @@ async function streamWithProviderHeartbeat({
   prompt,
   messageCount = 0,
   workspace,
+  sseAlreadyStarted = false,
 }) {
   const streamStartedAt = Date.now();
-  initSseStream(res, id, model);
-  writeSseKeepalive(res, id, model);
+  if (!sseAlreadyStarted) {
+    initSseStream(res, id, model);
+    writeSseKeepalive(res, id, model, 1);
+  }
 
   // #region agent log
   agentDebugLog(
@@ -717,13 +819,29 @@ async function streamWithProviderHeartbeat({
       settled = true;
     });
 
+  let heartbeatSeq = 0;
   const heartbeat = setInterval(() => {
     if (settled || res.writableEnded) {
       clearInterval(heartbeat);
       return;
     }
     try {
-      writeSseKeepalive(res, id, model);
+      heartbeatSeq += 1;
+      writeSseKeepalive(res, id, model, heartbeatSeq);
+      if (heartbeatSeq % 5 === 0) {
+        // #region agent log
+        agentDebugLog(
+          "server.js:streamWithProviderHeartbeat:keepalive",
+          "progress keepalive sent",
+          {
+            providerModel,
+            heartbeatSeq,
+            elapsedMs: Date.now() - streamStartedAt,
+          },
+          "H4"
+        );
+        // #endregion
+      }
     } catch (err) {
       console.warn("[model-bridge] SSE keepalive failed:", err?.message || err);
       clearInterval(heartbeat);
@@ -738,7 +856,21 @@ async function streamWithProviderHeartbeat({
   }
 
   if (!result.ok) {
-    throw result.err;
+    const errorPayload = bridgeErrorPayload(result.err);
+    // #region agent log
+    agentDebugLog(
+      "server.js:streamWithProviderHeartbeat:provider-error",
+      "streaming provider error as assistant content",
+      {
+        providerModel,
+        message: errorPayload.error.message.slice(0, 300),
+        elapsedMs: Date.now() - streamStartedAt,
+      },
+      "H6"
+    );
+    // #endregion
+    writeSseErrorAsContentAndEnd(res, id, model, errorPayload);
+    return;
   }
 
   writeSseContentChunks(res, id, model, result.output);
@@ -912,7 +1044,9 @@ app.post("/v1/chat/completions", async (req, res) => {
       stream = false,
     } = body;
 
-    const providerModel = resolveProviderModel(requestModel);
+    const messageCount = Array.isArray(messages) ? messages.length : 0;
+    await refreshProviderAuthCache();
+    const providerModel = resolveProviderModel(requestModel, { messageCount });
     const workspace = getWorkspace();
 
     console.log("[model-bridge] /v1/chat/completions", {
@@ -920,10 +1054,49 @@ app.post("/v1/chat/completions", async (req, res) => {
       requestModel,
       providerModel,
       workspace,
-      messageCount: Array.isArray(messages) ? messages.length : 0,
+      messageCount,
       hasTools: Boolean(body.tools),
       toolCount: Array.isArray(body.tools) ? body.tools.length : 0,
     });
+
+    if (messageCount > HERMES_MAX_MESSAGES) {
+      const limitText = hermesSessionLimitMessage(messageCount);
+      agentDebugLog(
+        "server.js:chat/completions:session-limit",
+        "hermes session over limit",
+        { messageCount, max: HERMES_MAX_MESSAGES },
+        "H5"
+      );
+      if (stream) {
+        initSseStream(res, id, providerModel);
+        writeSseContentChunks(res, id, providerModel, limitText);
+        finishSseStream(res, id, providerModel);
+        return;
+      }
+      return res.status(413).json({
+        error: { message: limitText, type: "invalid_request_error" },
+      });
+    }
+
+    if (!_providerAuthCache.cursor && !_providerAuthCache.kiro) {
+      const msg =
+        "No bridge provider ready. Run: agent login OR kiro-cli login (then restart kiro-openai-bridge).";
+      if (stream) {
+        writeSseErrorAndEnd(res, 503, {
+          error: { message: msg, type: "connection_error" },
+        });
+        return;
+      }
+      return res.status(503).json({
+        error: { message: msg, type: "connection_error" },
+      });
+    }
+
+    const sseAlreadyStarted = Boolean(stream);
+    if (sseAlreadyStarted) {
+      initSseStream(res, id, providerModel);
+      writeSseKeepalive(res, id, providerModel, 1);
+    }
 
     const prompt = messagesToPrompt(messages, providerModel, workspace);
 
@@ -935,7 +1108,7 @@ app.post("/v1/chat/completions", async (req, res) => {
         providerModel,
         requestModel,
         workspace,
-        messageCount: Array.isArray(messages) ? messages.length : 0,
+        messageCount,
         promptBytes: Buffer.byteLength(prompt, "utf8"),
         bodyBytes: Buffer.byteLength(JSON.stringify(body), "utf8"),
         hasTools: Boolean(body.tools),
@@ -963,8 +1136,6 @@ app.post("/v1/chat/completions", async (req, res) => {
       return res.status(400).json(error);
     }
 
-    const messageCount = Array.isArray(messages) ? messages.length : 0;
-
     if (stream) {
       await streamWithProviderHeartbeat({
         res,
@@ -974,6 +1145,7 @@ app.post("/v1/chat/completions", async (req, res) => {
         prompt,
         messageCount,
         workspace,
+        sseAlreadyStarted,
       });
       return;
     }
@@ -998,9 +1170,14 @@ app.post("/v1/chat/completions", async (req, res) => {
 
     const errorPayload = bridgeErrorPayload(err);
     const status = providerHttpStatus(err);
+    const streamModel = resolveProviderModel(req.body?.model, {
+      messageCount: Array.isArray(req.body?.messages)
+        ? req.body.messages.length
+        : 0,
+    });
 
     if (req.body?.stream) {
-      writeSseErrorAndEnd(res, status, errorPayload);
+      writeSseErrorAsContentAndEnd(res, id, streamModel, errorPayload);
       return;
     }
 
@@ -1014,7 +1191,15 @@ app.listen(port, "127.0.0.1", () => {
   console.log(`Hermes multi-provider bridge listening on http://127.0.0.1:${port}`);
   console.log(`Workspace: ${getWorkspace()} (hot-reload from active-project.env)`);
   console.log(`Default model: ${defaultModel}`);
+  console.log(`Hermes max messages: ${HERMES_MAX_MESSAGES}; cursor agent max: ${CURSOR_AGENT_MAX_MESSAGES}`);
   console.log(`Kiro provider: ${KIRO_PROVIDER}`);
   console.log(`Cursor provider: ${CURSOR_PROVIDER}`);
   console.log(`State file: ${modelState.STATE_PATH}`);
+  refreshProviderAuthCache()
+    .then((auth) => {
+      console.log(
+        `[model-bridge] provider auth: cursor=${auth.cursor} kiro=${auth.kiro}`
+      );
+    })
+    .catch(() => {});
 });

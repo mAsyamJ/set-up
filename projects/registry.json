@@ -26,6 +26,11 @@
       "path": "projects/defi-lab/arbeyes-defi",
       "kanban": "arbeyes-defi-v1",
       "displayName": "ArbEyes DeFi"
+    },
+    "mev-share-backrun-flashloan-arbitrage": {
+      "path": "projects/defi-lab/mev_share_backrun_flashloan_arbitrage",
+      "kanban": "mev-share-backrun-v1",
+      "displayName": "MEV Share Backrun Flashloan Arbitrage"
     }
   }
 }
