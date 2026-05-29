@@ -21,7 +21,7 @@ Debugging Bundles: https://docs.flashbots.net/flashbots-mev-share/searchers/debu
 
 Rate Limit: https://docs.flashbots.net/flashbots-mev-share/searchers/ratelimiting
 
-
+API: https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint
 
 
 

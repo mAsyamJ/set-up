@@ -41,7 +41,7 @@ See `docs/02-multichain-architecture.md`, `docs/03-chain-collector-model.md`, an
 - **Observability** — tracing (JSON → journald), Prometheus `/metrics`, axum `/health`, Telegram alerts, VPS/systemd runbook.
 - **Security & Scope** — secrets hygiene, strict adherence to `docs/19-do-not-build-yet.md` and `docs/18-ml-and-redis-later.md`.
 - **QA Gate** — fixtures for collectors/strategies, serde round-trips, offline tests, gate regression on survival metrics.
-- **OpenSrc Librarian** — pinned upstream refs (Flashbots MEV-Share, Alloy, Foundry), path files under `.harness/research/opensrc-paths/`, doc cross-links.
+- **OpenSrc Librarian** — owns the cache script (`scripts/mev-share-backrun-opensrc-cache.sh`), maintains `.harness/opensrc-packages.txt` + `.harness/research/opensrc-paths/`, teaches agents to use `$(opensrc path <spec>)` (the official CLI) or the .path files for MEV-Share / Artemis / flashloan / DEX / ML research.
 
 ## Coding rules
 
@@ -55,12 +55,16 @@ See `docs/02-multichain-architecture.md`, `docs/03-chain-collector-model.md`, an
 ## Read order
 
 1. `.harness/project.manifest.json`
-2. `.harness/project-context.md`
-3. `docs/00-executive-decision.md` → `docs/01-product-scope.md` → `docs/17-14-30-60-90-day-plan.md`
-4. `docs/20-agentic-coding-prompt.md` (the hard V1 contract and build order)
-5. `ORCHESTRATOR.md` / `DECISIONS.md`
-6. Key technical docs: `02-multichain-architecture.md`, `03-chain-collector-model.md`, `05-postgres-schema.md`, `10-backrun-v1-strategy.md`, `11-flashloan-feasibility-model.md`, `14-risk-engine.md`
+2. `.harness/project-context.md` (includes OpenSrc + full Knowledge Graph instructions)
+3. `.harness/research/knowledgeGraph/index.md` + `03-constraints-and-gates.md` (the V1 constitution)
+4. `docs/00-executive-decision.md` → `docs/01-product-scope.md` → `docs/17-14-30-60-90-day-plan.md`
+5. `docs/20-agentic-coding-prompt.md` (the hard V1 contract and build order)
+6. `ORCHESTRATOR.md` / `DECISIONS.md`
+7. Key technical docs: `02-multichain-architecture.md`, `03-chain-collector-model.md`, `05-postgres-schema.md`, `10-backrun-v1-strategy.md`, `11-flashloan-feasibility-model.md`, `14-risk-engine.md`
+8. OpenSrc usage: "opensrc: Getting Started" (in project docs/research/) + `.harness/opensrc-packages.txt` + `knowledgeGraph/04-opensrc-provenance.md`
 
 Harness playbooks: `$AGENT_HARNESS_HOME/docs/kit/`
+
+**The Knowledge Graph is now a first-class required artifact.** All agents must consult it before proposing architecture or implementation work.
 
 Maintain the three-tier tagging (BUILD NOW / BUILD LATER / DO NOT BUILD YET) in every planning artifact.

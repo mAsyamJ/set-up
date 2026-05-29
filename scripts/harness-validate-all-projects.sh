@@ -50,13 +50,17 @@ while IFS= read -r name; do
     fi
   fi
 
-  if [ "$name" = "kreditagent" ]; then
+  if [ "$name" = "kreditagent" ] || [ "$name" = "mev-share-backrun-flashloan-arbitrage" ]; then
     opensrc_dir="$root/.harness/research/opensrc-paths"
     count="$(find "$opensrc_dir" -name '*.path' 2>/dev/null | wc -l | tr -d ' ')"
     if [ "${count:-0}" -gt 0 ]; then
       echo "OK: opensrc paths ($count)"
     else
-      echo "WARN: no opensrc paths (run kreditagent-opensrc-cache.sh)"
+      if [ "$name" = "kreditagent" ]; then
+        echo "WARN: no opensrc paths (run kreditagent-opensrc-cache.sh)"
+      else
+        echo "WARN: no opensrc paths (run scripts/mev-share-backrun-opensrc-cache.sh)"
+      fi
       WARN=$((WARN + 1))
     fi
   fi

@@ -1,0 +1,7 @@
+{
+  "note": "PLACEHOLDER for the raw output from the Understand-Anything plugin.",
+  "source_command": "/understand all from .harness/research/ (executed by user 2026-05-28)",
+  "status": "Awaiting plugin generation. When the .understand-anything/knowledge-graph.json is produced, copy its contents here (or the full file) and rename/ version as needed.",
+  "instructions": "After the plugin finishes, replace this placeholder with the actual structured graph JSON. Then re-run synthesis passes in the other MD files to cross-link nodes where useful.",
+  "harness_integration": "This file + the hand-crafted MD files in this directory together form the dual deliverable for the agentic harness."
+}

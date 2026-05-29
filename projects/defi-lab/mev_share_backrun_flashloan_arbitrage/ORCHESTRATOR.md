@@ -50,8 +50,26 @@ AGENT_HARNESS_HOME=~/dev/Project/agent-harness \
   bash "$AGENT_HARNESS_HOME/scripts/kanban-init-project-board.sh" mev-share-backrun-flashloan-arbitrage
 ```
 
-## OpenSrc
+## OpenSrc + Knowledge Graph
 
-Maintain `.harness/opensrc-packages.txt` and any resolved `.harness/research/opensrc-paths/*.path` entries for the study sources listed in `project-context.md` (Flashbots MEV-Share family, Alloy, Foundry, reference DEXes).
+Maintain the expanded `.harness/opensrc-packages.txt` and the generated `.harness/research/opensrc-paths/*.path` entries (full research corpus: MEV-Share family, Artemis, flashloan examples, DEX math, ML tooling, Alloy, Foundry, etc.).
+
+**Refresh paths** (from MEV project root):
+
+```bash
+bash ../../../scripts/mev-share-backrun-opensrc-cache.sh
+```
+
+**Knowledge Graph** (the deep understanding layer for the entire project):
+
+`.harness/research/knowledgeGraph/`
+
+This directory (built via the Understand-Anything plugin + heavy synthesis) is now required infrastructure. It contains:
+- `03-constraints-and-gates.md` (V1 constitution)
+- Data flows, OpenSrc provenance, innovation opportunities (with BUILD tags), phase mapping, validation report
+
+**Every phase plan and every significant decision must reference the current state of the Knowledge Graph.**
+
+Agents and tools should prefer the live `$(opensrc path <spec>)` syntax or the stable cached `.path` files. The KG is the single source of truth for "what we have deeply understood so far."
 
 Pin relevant upstream tags or shapes in code comments when the corresponding crate is implemented.

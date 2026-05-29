@@ -171,6 +171,7 @@ curl -sf http://127.0.0.1:8787/health | python3 -m json.tool
 | [scripts/kanban-init-project-board.sh](scripts/kanban-init-project-board.sh) | Create board + seed smoke task |
 | [scripts/write-harness-active-context.py](scripts/write-harness-active-context.py) | Writes `~/.hermes/harness-active-context.json` (Hermes dashboard + Kanban hint) — run via `switch-project` |
 | [scripts/kreditagent-opensrc-cache.sh](scripts/kreditagent-opensrc-cache.sh) | OpenSrc paths for KreditAgent study repos (no vendored `external/`) |
+|| [scripts/mev-share-backrun-opensrc-cache.sh](scripts/mev-share-backrun-opensrc-cache.sh) | MEV Share Backrun Flashloan Arbitrage OpenSrc paths (expanded research corpus for agentic harness) |
 | [scripts/hermes-bootstrap-harness.sh](scripts/hermes-bootstrap-harness.sh) | One-shot Hermes ↔ Harness wiring for full registry |
 
 Kanban UI (per board) is served by **`hermes dashboard`** on port **9119** — not by `hermes-gateway`. Start it with `hermes dashboard` (or enable `hermes-dashboard.service` from `systemd/user/`). WSL + Windows: bind `--host 0.0.0.0` and use `scripts/fix-hermes-kanban-ui.sh` or `scripts/update-wsl-portproxy.sh` if `localhost:9119` does not forward.
@@ -493,6 +494,20 @@ cli/harness doctor projects/myapp
 bash scripts/kreditagent-opensrc-cache.sh
 ls projects/kreditagent/.harness/research/opensrc-paths/
 ```
+
+**MEV Share Backrun Flashloan Arbitrage special case:** The large research corpus (MEV-Share, Artemis, flashloan examples, DEX references, ML libs, etc.) is managed exclusively via the `opensrc` CLI + project cache script (no vendoring). Refresh OpenSrc paths:
+
+```bash
+# from harness root
+bash scripts/mev-share-backrun-opensrc-cache.sh
+
+# or from inside the project
+cd projects/defi-lab/mev_share_backrun_flashloan_arbitrage
+bash ../../../scripts/mev-share-backrun-opensrc-cache.sh
+ls .harness/research/opensrc-paths/
+```
+
+See also the project's [docs/research/using-opensrc-cli.md](projects/defi-lab/mev_share_backrun_flashloan_arbitrage/docs/research/using-opensrc-cli.md) for the "Getting Started" workflow and the expanded `opensrc fetch` list in its `.harness/opensrc-packages.txt`.
 
 For greenfield (empty tree): `cli/harness init-project projects/my-new-app` instead of import.
 

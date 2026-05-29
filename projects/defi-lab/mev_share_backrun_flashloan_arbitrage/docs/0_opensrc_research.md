@@ -7,6 +7,16 @@ You should expand the OpenSrc map into **four layers**:
 4. Machine-learning / strategy-intelligence source of truth
 ```
 
+**Getting Started with `opensrc` (the official CLI for agent research)**
+
+See the dedicated guide: [docs/research/using-opensrc-cli.md](research/using-opensrc-cli.md)
+
+It explains `npm install -g opensrc`, the `$(opensrc path <spec>)` pattern (works with GitHub, crates:, pypi:, etc.), and how it integrates with this project's expanded research corpus and `.harness/opensrc-packages.txt`.
+
+All `rg $(opensrc path ...)` examples in this document assume you have run the cache script and/or have the CLI available.
+
+---
+
 Your uploaded technical doc already defines the correct product shape: a **Rust-based broad shadow searcher**, starting with **Ethereum MEV-Share**, using **multi-chain scanning**, normalizing DEX state, and promoting only the strongest narrow opportunity class to live execution later. 
 
 The most important source repo remains `flashbots/simple-blind-arbitrage`, because it is an official Flashbots example for blindly submitting atomic arbitrage opportunities to the MEV-Share Node, and its README explicitly says it can backrun Uniswap v2 transactions by calculating optimal arbitrage between two pools on-chain even when user trade details are hidden. It also lists future improvements like flashloans, more pools, more v2 forks, non-WETH coins, and other DEXes — exactly the expansion path you want. ([GitHub][1])
@@ -72,6 +82,55 @@ opensrc fetch \
   tracel-ai/burn \
   dmlc/xgboost
 ```
+
+---
+
+## Expanded Research Corpus for Agentic Harness Workflow
+### (MEV Shared Flashloan Arbitrage Bot — Source Code, Patterns & Innovation)
+
+This superset was explicitly added to support **agentic harness** research workflows:
+
+- Systematic source code study by agents (OpenSrc Librarian, rust-core, rust-evm, etc.)
+- Extraction of flashloan, backrun, and arbitrage mechanics from real public implementations
+- Innovation input when evolving the searcher beyond pure V1 shadow scanner
+- Future gated live execution phases (post Day-60/90 evidence gates)
+
+**Command used to seed this expanded research set:**
+
+```bash
+opensrc fetch \
+  flashbots/simple-blind-arbitrage \
+  flashbots/mev-share \
+  flashbots/mev-share-client-ts \
+  paradigmxyz/mev-share-rs \
+  paradigmxyz/artemis \
+  Uniswap/v2-core \
+  Uniswap/v2-periphery \
+  Uniswap/v3-periphery \
+  aave/aave-v3-core \
+  aave/aave-address-book \
+  balancer/balancer-v2-monorepo \
+  Haehnchen/uniswap-arbitrage-flash-swap \
+  yuyasugano/pancake-bakery-arbitrage \
+  kaymen99/aave-flashloan-arbitrage \
+  alloy-rs/alloy \
+  foundry-rs/foundry \
+  catboost/catboost \
+  online-ml/river \
+  rust-ml/linfa \
+  smartcorelib/smartcore \
+  pykeio/ort
+```
+
+**Note:** The machine-readable, harness-authoritative list lives at:
+
+`.harness/opensrc-packages.txt`
+
+After using the research corpus, go to the **Knowledge Graph** for the synthesized deep understanding:
+
+→ [`.harness/research/knowledgeGraph/index.md`](.harness/research/knowledgeGraph/index.md)
+
+It includes full provenance (04), innovation opportunities with BUILD tags (05), and validation against all V1 gates.
 
 ---
 

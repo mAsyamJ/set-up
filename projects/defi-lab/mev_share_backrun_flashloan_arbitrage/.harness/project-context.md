@@ -51,6 +51,37 @@ Study (do not vendor):
 
 Local clones tracked under `.harness/research/opensrc-paths/` when available. Pin relevant tags/shapes in comments when implemented.
 
+## Refresh OpenSrc paths
+
+To drive the real `opensrc` CLI (the "Getting Started" workflow) and populate stable per-project pointers for all agents, run:
+
+```bash
+# From the MEV project root (projects/defi-lab/mev_share_backrun_flashloan_arbitrage)
+bash ../../../scripts/mev-share-backrun-opensrc-cache.sh
+
+ls .harness/research/opensrc-paths/
+```
+
+(Alternatively, from the agent-harness root: `bash scripts/mev-share-backrun-opensrc-cache.sh` — the script uses the default project path.)
+
+This wires `$(opensrc path <spec>)` (and the generated `.path` files) as the canonical source for exploring the full research corpus (MEV-Share, Artemis, flashloan examples, DEX math, ML libs, Alloy, etc.).
+
+## Knowledge Graph (Deep Understanding Layer)
+
+The authoritative deep analysis, architecture, constraints, data flows, and innovation opportunities live in:
+
+`.harness/research/knowledgeGraph/`
+
+**Always read first** (in this order):
+1. `index.md` + `03-constraints-and-gates.md` (the V1 constitution)
+2. `02-data-flows-and-normalization.md`
+3. `05-innovation-opportunities.md` (BUILD NOW / LATER / DO NOT BUILD YET)
+4. `04-opensrc-provenance.md`
+
+The KG was built using the Understand-Anything plugin on the research corpus + full synthesis of all docs and the expanded OpenSrc list. It is required reading for every agent and human working on the project.
+
+See `knowledgeGraph/RUN-COMMANDS.md` for regeneration instructions.
+
 ## Verification
 
 ```bash
