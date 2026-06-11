@@ -31,6 +31,11 @@
       "path": "projects/defi-lab/mev_share_backrun_flashloan_arbitrage",
       "kanban": "mev-share-backrun-v1",
       "displayName": "MEV Share Backrun Flashloan Arbitrage"
+    },
+    "midnight-audit": {
+      "path": "projects/security-researcher/midnight-audit",
+      "kanban": "midnight-audit",
+      "displayName": "Midnight Audit"
     }
   }
 }

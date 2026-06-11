@@ -65,11 +65,11 @@ Provider: custom OpenAI-compatible endpoint at `http://127.0.0.1:8787/v1` (multi
    - Optional: `CURSOR_BRIDGE_MODE=agent` in `~/.hermes/.env` (default; use `ask` for read-only)
    - `systemctl --user restart kiro-openai-bridge`
 
-3. In Telegram: `/provider` (status), `/provider kiro`, `/provider cursor` — then `/reset` after switching.
+3. In Telegram: `/provider` (status), `/provider kiro`, `/provider cursor`, `/provider codex` — then `/reset` after switching.
 
 4. Smoke: `scripts/smoke-cursor-bridge.sh`
 
-CLI equivalent: `scripts/aegis-model.sh status|kiro|cursor`
+CLI equivalent: `scripts/aegis-model.sh status|kiro|cursor|codex`
 
 ### 2. Hermes CLI (terminal)
 
@@ -102,9 +102,10 @@ Run `/commands` in Telegram for the live list. Common commands:
 | `/commands` | List available commands |
 | `/set-home` | Set this chat as home channel (cron delivery) |
 | `/model` | Show provider URL (custom → `http://127.0.0.1:8787/v1`) |
-| `/provider` | Show active bridge backend (Kiro vs Cursor) — requires [`aegis-provider-switch` skill](templates/hermes-provider-switch/SKILL.md) |
+| `/provider` | Show active bridge backend (Kiro, Cursor, or Codex) — requires [`aegis-provider-switch` skill](templates/hermes-provider-switch/SKILL.md) |
 | `/provider kiro` | Switch Hermes inference to `kiro-cli` |
 | `/provider cursor` | Switch Hermes inference to headless Cursor Agent (edits + shell) |
+| `/provider codex` | Switch Hermes inference to OpenAI Codex (authenticated local `codex` CLI) |
 | `/plan …` | **Plan mode** — planning only; saves to `.hermes/plans/` |
 | `/new`, `/reset` | Fresh session |
 | `/history` | Conversation history (CLI) |

@@ -68,6 +68,7 @@ Safe CLI: `scripts/hermes-harness-cli.sh list-projects|switch-project|validate-a
 | KreditAgent | `projects/kreditagent/` | `kreditagent-hackathon` |
 | RetroPick | `projects/retropick/` | `retropick-v1` |
 | ArbEyes DeFi | `projects/defi-lab/arbeyes-defi/` | `arbeyes-defi-v1` |
+| Midnight Audit | `projects/security-researcher/midnight-audit/` | `midnight-audit` |
 | Agentic Ops | `projects/ops/` | `agentic-ops` (marketing/business) |
 
 Registry: `projects/registry.json`. Switch active project:
@@ -156,3 +157,4 @@ Fleet env: `AEGIS_CURSOR_FLEET_MAX_CONCURRENT` (default 4 local), `AEGIS_CURSOR_
 - KreditAgent `external/` vendored repos excluded from harness copy; reference via OpenSrc cache.
 - Cursor fleet on WSL: `cursor-fleet.service` (30s ticks); `kanban.dispatch_in_gateway: false` when fleet owns workers.
 - ArbEyes DeFi at `projects/defi-lab/arbeyes-defi/` (registry slug `arbeyes-defi`).
+- Midnight Audit at `projects/security-researcher/midnight-audit/` (registry slug `midnight-audit`).

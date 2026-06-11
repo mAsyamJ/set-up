@@ -14,7 +14,7 @@ const STATE_PATH =
   process.env.AEGIS_MODEL_STATE ||
   path.join(WORKSPACE, "runtime/aegis-model.json");
 
-const KNOWN_MODELS = ["kiro-current", "cursor-composer-2"];
+const KNOWN_MODELS = ["kiro-current", "cursor-composer-2", "openai-codex"];
 const DEFAULT_MODEL = process.env.AEGIS_DEFAULT_MODEL || "kiro-current";
 
 function ensureStateDir() {
@@ -98,8 +98,29 @@ function isCursorConfigured() {
   }
 }
 
+function isOpenAICodexConfigured() {
+  try {
+    const { spawnSync } = require("node:child_process");
+    const codexBin = process.env.CODEX_BIN || "codex";
+    const result = spawnSync(codexBin, ["login", "status"], {
+      encoding: "utf8",
+      timeout: 10000,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return (
+      result.status === 0 &&
+      /logged in/i.test(`${String(result.stdout || "")}\n${String(result.stderr || "")}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
 const CURSOR_NOT_CONFIGURED_MESSAGE =
   "Cursor is not configured. Run scripts/setup-cursor-bridge-auth.sh (agent login) or set CURSOR_API_KEY in ~/.hermes/.env, then restart kiro-openai-bridge.";
+
+const CODEX_NOT_CONFIGURED_MESSAGE =
+  "Codex CLI is not configured. Run codex login once, then restart kiro-openai-bridge.";
 
 function getCursorBridgeMode() {
   const raw = String(process.env.CURSOR_BRIDGE_MODE || "agent").trim().toLowerCase();
@@ -113,7 +134,9 @@ module.exports = {
   setDefaultModel,
   listProviders,
   isCursorConfigured,
+  isOpenAICodexConfigured,
   readState,
   CURSOR_NOT_CONFIGURED_MESSAGE,
+  CODEX_NOT_CONFIGURED_MESSAGE,
   getCursorBridgeMode,
 };

@@ -122,7 +122,7 @@ Vault: `~/dev/Project/_vaults/agentic-engineering/` — shared across projects, 
 
 ## Multi-project operation
 
-Five registry entries today — four product codebases plus **Agentic Ops** for marketing/business. Each has its own Kanban board, RAG index, Obsidian project note, and manifest.
+Six registry entries today — five product/research codebases plus **Agentic Ops** for marketing/business. Each has its own Kanban board, RAG index, Obsidian project note, and manifest.
 
 | Project | Path | Kanban board | Display name |
 |---------|------|--------------|--------------|
@@ -130,6 +130,7 @@ Five registry entries today — four product codebases plus **Agentic Ops** for 
 | KreditAgent | `projects/kreditagent/` | `kreditagent-hackathon` | KreditAgent |
 | RetroPick | `projects/retropick/` | `retropick-v1` | RetroPick |
 | ArbEyes DeFi | `projects/defi-lab/arbeyes-defi/` | `arbeyes-defi-v1` | ArbEyes DeFi |
+| Midnight Audit | `projects/security-researcher/midnight-audit/` | `midnight-audit` | Midnight Audit |
 | Agentic Ops | `projects/ops/` | `agentic-ops` | Marketing / business / GTM |
 
 Registry: [projects/registry.json](projects/registry.json). Kanban workspace must use **absolute paths**: `dir:/home/.../projects/<name>`.

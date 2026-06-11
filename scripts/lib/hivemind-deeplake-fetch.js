@@ -3,9 +3,9 @@
  * Fetch recent Hivemind summaries from Deeplake API (cloud index).
  * Used by kiro-openai-bridge when local ~/.deeplake/memory is empty.
  */
-const fs = require("node:fs");
-const path = require("node:path");
-const os = require("node:os");
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
 
 const MAX_ROWS = Number(process.env.HIVEMIND_BRIDGE_FETCH_LIMIT || 8);
 const TIMEOUT_MS = Number(process.env.HIVEMIND_QUERY_TIMEOUT_MS || 12000);
@@ -112,11 +112,11 @@ async function main() {
   process.stdout.write(formatRowsForBridge(result.rows));
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((e) => {
     process.stderr.write(String(e.message || e));
     process.exit(1);
   });
 }
 
-module.exports = { fetchRecentSummaries, searchSummaries, formatRowsForBridge, queryDeeplake };
+export { fetchRecentSummaries, searchSummaries, formatRowsForBridge, queryDeeplake };

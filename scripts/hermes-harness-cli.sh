@@ -69,6 +69,22 @@ for slug, cfg in reg.get('projects', {}).items():
     shift || true
     exec "$HARNESS" "$CMD" "$PROJ" "$@"
     ;;
+  audit)
+    PROJECT="${1:-}"
+    SUB="${2:-}"
+    [ -n "$PROJECT" ] && [ -n "$SUB" ] || { echo "Usage: audit <project-or-slug> <run|status|report|schedule|config> ..." >&2; exit 1; }
+    PROJ="$(resolve_project_path "$PROJECT")" || { echo "Unknown project: $PROJECT" >&2; exit 1; }
+    shift 2 || true
+    case "$SUB" in
+      run|status|report|schedule|config)
+        exec "$HARNESS" audit "$SUB" "$PROJ" "$@"
+        ;;
+      *)
+        echo "DENIED: audit subcommand not allowlisted: $SUB" >&2
+        exit 1
+        ;;
+    esac
+    ;;
   run-task)
     PROJECT="${1:-}"
     TOOL="${2:-}"
@@ -107,7 +123,7 @@ for slug, cfg in reg.get('projects', {}).items():
     echo "Usage: hermes-harness-cli.sh <cmd> [args...]" >&2
     echo "Global: list-projects | switch-project <slug> | validate-all" >&2
     echo "Per-project: doctor|status|smoke|index-project|start-hermes-doctor <slug>" >&2
-    echo "             run-task <slug> <tool> [json] | obsidian <slug> <subcmd> ..." >&2
+    echo "             run-task <slug> <tool> [json] | obsidian <slug> <subcmd> ... | audit <slug> <subcmd> ..." >&2
     exit 1
     ;;
 esac

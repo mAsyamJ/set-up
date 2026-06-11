@@ -79,10 +79,15 @@ fi
 
 FETCH_JS="${AEGIS_REPO_ROOT}/scripts/lib/hivemind-deeplake-fetch.js"
 if [[ -f "$FETCH_JS" ]]; then
-  if CLOUD_OUT="$(node "$FETCH_JS" 2>/dev/null)" && [[ -n "$CLOUD_OUT" ]] && echo "$CLOUD_OUT" | grep -q '/summaries/'; then
-    pass "Deeplake cloud index reachable (summaries found)"
+  if CLOUD_OUT="$(node "$FETCH_JS" 2>/tmp/hivemind-fetch.err)"; then
+    if [[ -n "$CLOUD_OUT" ]] && echo "$CLOUD_OUT" | grep -q '/summaries/'; then
+      pass "Deeplake cloud index reachable (summaries found)"
+    else
+      warn "Deeplake cloud index reachable but no summary rows yet"
+    fi
   else
-    fail "Deeplake cloud fetch failed or empty — run: hivemind login"
+    ERR="$(head -1 /tmp/hivemind-fetch.err 2>/dev/null || true)"
+    fail "Deeplake cloud fetch failed: ${ERR:-unknown error} — run: hivemind login"
   fi
 else
   fail "missing hivemind-deeplake-fetch.js"

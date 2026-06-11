@@ -2,7 +2,7 @@
 
 This project uses real Nous Hermes Agent as the runtime and a local OpenAI-compatible bridge (`127.0.0.1:8787`) as the custom model provider.
 
-Default backend: **Kiro** (`kiro-current` via `kiro-cli`). Optional backend: **Cursor** (`cursor-composer-2` via headless Cursor Agent — edits + shell in workspace).
+Default backend: **Kiro** (`kiro-current` via `kiro-cli`). Optional backends: **Cursor** (`cursor-composer-2` via headless Cursor Agent — edits + shell in workspace) and **Codex** (`openai-codex` via the authenticated local Codex CLI).
 
 ## Correct services
 
@@ -33,6 +33,7 @@ That bypasses Hermes and causes Telegram polling conflicts.
 scripts/aegis-model.sh status
 scripts/aegis-model.sh kiro
 scripts/aegis-model.sh cursor   # headless agent; auth via setup-cursor-bridge-auth.sh
+scripts/aegis-model.sh codex    # OpenAI Codex; auth via `codex login`
 ```
 
 Telegram `/provider` (skill auto-installed by `scripts/install-systemd-user.sh`):
@@ -41,6 +42,7 @@ Telegram `/provider` (skill auto-installed by `scripts/install-systemd-user.sh`)
 /provider
 /provider kiro
 /provider cursor
+/provider codex
 /reset
 ```
 
@@ -54,6 +56,9 @@ In `~/.hermes/.env` (see `runtime/aegis-model.env.example`):
 
 - `CURSOR_BRIDGE_MODE=agent` (default) — file edits + shell
 - `CURSOR_BRIDGE_MODE=ask` — read-only Q&A fallback
+- `OPENAI_API_KEY=...`
+- `OPENAI_CODEX_MODEL_INTERACTIVE=gpt-5.1-codex`
+- `OPENAI_CODEX_MODEL_AUDIT=gpt-5.1-codex-max`
 
 Restart bridge after env changes: `systemctl --user restart kiro-openai-bridge`
 

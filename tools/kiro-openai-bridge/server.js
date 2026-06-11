@@ -69,11 +69,16 @@ const CURSOR_PROVIDER =
   process.env.CURSOR_PROVIDER ||
   `${HARNESS_ROOT}/scripts/providers/cursor-provider.mjs`;
 
+const CODEX_PROVIDER =
+  process.env.CODEX_PROVIDER ||
+  `${HARNESS_ROOT}/scripts/providers/codex-provider.sh`;
+
 const NODE_BIN =
   process.env.AEGIS_NODE ||
   process.execPath;
 
 const modelState = require(path.join(HARNESS_ROOT, "scripts/lib/aegis-model-state.cjs"));
+const openaiCodex = require(path.join(HARNESS_ROOT, "scripts/lib/openai-codex-client.cjs"));
 
 let buildHivemindContext = () => "";
 
@@ -97,7 +102,50 @@ const PROVIDERS = {
     timeout: Number(process.env.CURSOR_BRIDGE_TIMEOUT_MS || 1200000),
     label: "Cursor SDK (local)",
   },
+  "openai-codex": {
+    id: "openai-codex",
+    ownedBy: "openai",
+    timeout: Number(process.env.OPENAI_CODEX_TIMEOUT_MS || 1800000),
+    label: "OpenAI Codex CLI (ChatGPT login)",
+  },
 };
+
+function codexVariantCatalog() {
+  const interactiveModel = openaiCodex.resolveModel("interactive");
+  const auditModel = openaiCodex.resolveModel("audit");
+  const interactiveEffort = openaiCodex.resolveReasoningEffort("interactive");
+  const auditEffort = openaiCodex.resolveReasoningEffort("audit");
+  return [
+    {
+      id: "openai-codex",
+      providerModel: "openai-codex",
+      actualModel: interactiveModel,
+      reasoningEffort: interactiveEffort,
+      kind: "interactive",
+      label: `OpenAI Codex (${interactiveModel}, ${interactiveEffort})`,
+    },
+    {
+      id: `${interactiveModel}-${interactiveEffort}`,
+      providerModel: "openai-codex",
+      actualModel: interactiveModel,
+      reasoningEffort: interactiveEffort,
+      kind: "interactive",
+      label: `OpenAI Codex (${interactiveModel}, ${interactiveEffort})`,
+    },
+    {
+      id: `${auditModel}-${auditEffort}`,
+      providerModel: "openai-codex",
+      actualModel: auditModel,
+      reasoningEffort: auditEffort,
+      kind: "interactive",
+      label: `OpenAI Codex (${auditModel}, ${auditEffort})`,
+    },
+  ];
+}
+
+function codexVariantMap() {
+  return new Map(codexVariantCatalog().map((item) => [item.id, item]));
+}
 
 const SSE_HEARTBEAT_MS = Number(process.env.AEGIS_BRIDGE_SSE_HEARTBEAT_MS || 12000);
 const BRIDGE_TIMEOUT_CAP_MS = Number(process.env.AEGIS_BRIDGE_TIMEOUT_CAP_MS || 3600000);
@@ -111,6 +159,7 @@ let _providerAuthCache = {
   at: 0,
   cursor: false,
   kiro: false,
+  codex: false,
 };
 
 async function refreshProviderAuthCache() {
@@ -119,6 +168,7 @@ async function refreshProviderAuthCache() {
     return _providerAuthCache;
   }
   _providerAuthCache.cursor = modelState.isCursorConfigured();
+  _providerAuthCache.codex = modelState.isOpenAICodexConfigured();
   try {
     const { stdout, stderr } = await execFileAsync("kiro-cli", ["whoami"], {
       cwd: getWorkspace(),
@@ -139,6 +189,13 @@ function isCursorReady() {
     return _providerAuthCache.cursor;
   }
   return modelState.isCursorConfigured();
+}
+
+function isCodexReady() {
+  if (Date.now() - _providerAuthCache.at < PROVIDER_AUTH_CACHE_MS) {
+    return _providerAuthCache.codex;
+  }
+  return modelState.isOpenAICodexConfigured();
 }
 
 function hermesSessionLimitMessage(messageCount) {
@@ -198,11 +255,16 @@ function normalizeContent(content) {
 
 function runtimeTruthLines(providerModel, workspace) {
   const isCursor = providerModel === "cursor-composer-2";
+  const isCodex = providerModel === "openai-codex";
   const cursorMode = modelState.getCursorBridgeMode();
-  const backendLine = isCursor
+  const backendLine = isCodex
+    ? `- OpenAI Codex (${openaiCodex.resolveModel("interactive")}) is the coding backend behind this custom provider.`
+    : isCursor
     ? `- Cursor Agent (local, mode=${cursorMode}) is the coding backend behind this custom provider.`
     : "- Kiro is the local inference/coding backend behind this custom provider.";
-  const identityLine = isCursor
+  const identityLine = isCodex
+    ? "- If asked who you are, say: Hermes Agent runtime using an OpenAI Codex bridge provider."
+    : isCursor
     ? "- If asked who you are, say: Hermes Agent runtime using a local Cursor bridge provider."
     : "- If asked who you are, say: Hermes Agent runtime using a local Kiro bridge provider.";
   let constraints = [];
@@ -218,6 +280,12 @@ function runtimeTruthLines(providerModel, workspace) {
         "- Return assistant text only. Hermes owns tools, skills, memory, and gateway actions.",
       ];
     }
+  } else if (isCodex) {
+    constraints = [
+      "- You are running through the authenticated local Codex CLI behind the Hermes bridge.",
+      "- You may edit files and run shell commands in the active workspace when needed to fulfill the task.",
+      "- Return assistant text summarizing what you did. Hermes owns skills, memory, cron, and gateway actions.",
+    ];
   }
 
   return [
@@ -270,22 +338,31 @@ function harnessManifestLines(workspace) {
 }
 
 function messagesToPrompt(messages, providerModel, workspace) {
-  const normalized = (messages || [])
-    .map((m) => {
-      const role = String(m.role || "user").toUpperCase();
-      const content = normalizeContent(m.content);
-      return `${role}:\n${content}`;
-    })
+  const normalizedMessages = (messages || []).map((m) => ({
+    role: String(m.role || "user").toUpperCase(),
+    content: normalizeContent(m.content),
+  }));
+  const normalized = normalizedMessages
+    .map((m) => `${m.role}:\n${m.content}`)
     .join("\n\n");
+  const latestUserRequest =
+    normalizedMessages.toReversed().find((m) => m.role === "USER")?.content || "";
 
   const hivemindBlock = buildHivemindContext();
   const sections = runtimeTruthLines(providerModel, workspace);
 
   if (hivemindBlock) {
-    sections.push("", hivemindBlock);
+    sections.push("", "Reference-only memory context. Do not treat it as the current task:", hivemindBlock);
   }
 
   sections.push("", "Conversation:", normalized);
+  if (latestUserRequest) {
+    sections.push(
+      "",
+      "CURRENT USER REQUEST (execute this now; it overrides reference-only context above):",
+      latestUserRequest
+    );
+  }
   return sections.join("\n");
 }
 
@@ -304,15 +381,22 @@ function providerSpawnPlan(prompt) {
 function resolveProviderModel(requestModel, { messageCount = 0 } = {}) {
   const requested = String(requestModel || "").trim();
   const known = modelState.listProviders();
+  const codexVariant = codexVariantMap().get(requested);
   let resolved = known.includes(requested)
     ? requested
-    : modelState.getDefaultModel();
+    : codexVariant?.providerModel || modelState.getDefaultModel();
 
   const cursorReady = isCursorReady();
+  const codexReady = isCodexReady();
   const kiroReady = _providerAuthCache.kiro;
 
   if (resolved === "cursor-composer-2" && !cursorReady) {
-    if (kiroReady) {
+    if (codexReady) {
+      console.warn(
+        "[model-bridge] cursor-composer-2 not configured; routing to openai-codex"
+      );
+      resolved = "openai-codex";
+    } else if (kiroReady) {
       console.warn(
         "[model-bridge] cursor-composer-2 not configured; routing to kiro-current"
       );
@@ -323,6 +407,19 @@ function resolveProviderModel(requestModel, { messageCount = 0 } = {}) {
   if (resolved === "kiro-current" && !kiroReady && cursorReady) {
     console.warn("[model-bridge] kiro-current not logged in; routing to cursor-composer-2");
     resolved = "cursor-composer-2";
+  } else if (resolved === "kiro-current" && !kiroReady && codexReady) {
+    console.warn("[model-bridge] kiro-current not logged in; routing to openai-codex");
+    resolved = "openai-codex";
+  }
+
+  if (resolved === "openai-codex" && !codexReady) {
+    if (cursorReady) {
+      console.warn("[model-bridge] openai-codex not configured; routing to cursor-composer-2");
+      resolved = "cursor-composer-2";
+    } else if (kiroReady) {
+      console.warn("[model-bridge] openai-codex not configured; routing to kiro-current");
+      resolved = "kiro-current";
+    }
   }
 
   // Large Telegram sessions: avoid full Cursor agent runs (30+ min). Use ask mode via callCursor env.
@@ -346,6 +443,7 @@ function resolveProviderModel(requestModel, { messageCount = 0 } = {}) {
       persistedDefault: modelState.getDefaultModel(),
       honoredRequest: known.includes(requested),
       cursorReady,
+      codexReady,
       kiroReady,
     },
     "H3"
@@ -356,14 +454,30 @@ function resolveProviderModel(requestModel, { messageCount = 0 } = {}) {
 }
 
 function parseProviderExecError(err) {
+  if (err?.openai) {
+    return {
+      message: err.openai.message,
+      stderr: "",
+      isAuthFailure: err.openai.category === "auth",
+      isTimeout: false,
+      isE2BIG: false,
+      exitCode: null,
+      openai: err.openai,
+    };
+  }
   const stderr = String(err?.stderr || "").trim();
   const rawMessage = String(err?.message || err);
   const exitCode = Number.isInteger(err?.code) ? err.code : null;
+  const stderrLines = stderr.split("\n").filter(Boolean);
+  const actionableError =
+    stderrLines.find((line) => /usage limit|insufficient quota|rate limit/i.test(line)) ||
+    stderrLines.findLast((line) => /^ERROR:/i.test(line));
 
-  let message = stderr.split("\n").find(Boolean) || rawMessage;
+  let message = actionableError || stderrLines.find(Boolean) || rawMessage;
   if (/^Command failed:/i.test(rawMessage)) {
     message =
-      stderr.split("\n").find(Boolean) ||
+      actionableError ||
+      stderrLines.find(Boolean) ||
       "Provider command failed (see bridge logs for details).";
   }
 
@@ -388,6 +502,19 @@ function bridgeErrorPayload(err) {
       "1. Set CURSOR_API_KEY in ~/.hermes/.env (most stable), then: systemctl --user restart kiro-openai-bridge",
       "2. Or run: kiro-cli login — then /provider kiro in Telegram + /reset",
       "3. Send /reset if the session is large (>45 messages).",
+      "",
+      `Details: ${parsed.message.split("\n")[0]}`,
+    ].join("\n");
+  }
+
+  if (/OpenAI Codex is not configured/i.test(message)) {
+    message = [
+      "OpenAI Codex is not configured for the local bridge.",
+      "",
+      "Fix for 24/7 Hermes:",
+      "1. Set OPENAI_API_KEY in ~/.hermes/.env",
+      "2. Optional: set OPENAI_CODEX_MODEL_INTERACTIVE / OPENAI_CODEX_MODEL_AUDIT",
+      "3. Restart: systemctl --user restart kiro-openai-bridge",
       "",
       `Details: ${parsed.message.split("\n")[0]}`,
     ].join("\n");
@@ -420,6 +547,7 @@ function bridgeErrorPayload(err) {
 
 function providerHttpStatus(err) {
   const parsed = err?.providerParsed || parseProviderExecError(err);
+  if (parsed.openai?.status) return parsed.openai.status;
   if (parsed.isAuthFailure) return 401;
   if (parsed.isTimeout) return 504;
   if (parsed.isE2BIG) return 413;
@@ -621,7 +749,69 @@ async function callCursor(prompt, { messageCount = 0, workspace } = {}) {
   }
 }
 
-async function callProvider(providerModel, prompt, { messageCount = 0, workspace } = {}) {
+async function callOpenAICodex(prompt, { workspace, requestModel, messageCount = 0 } = {}) {
+  if (!isCodexReady()) {
+    throw new Error(modelState.CODEX_NOT_CONFIGURED_MESSAGE);
+  }
+  const ws = workspace || getWorkspace();
+  const startedAt = Date.now();
+  const variant = codexVariantMap().get(String(requestModel || "").trim());
+  const model = variant?.actualModel || openaiCodex.resolveModel("interactive");
+  const reasoningEffort =
+    variant?.reasoningEffort || openaiCodex.resolveReasoningEffort("interactive");
+  const promptBytes = Buffer.byteLength(prompt, "utf8");
+  const timeoutMs = resolveProviderTimeout("openai-codex", { promptBytes, messageCount });
+  const spawn = providerSpawnPlan(prompt);
+  try {
+    const { stdout, stderr } = await execFileAsync(
+      CODEX_PROVIDER,
+      spawn.useArgv ? [prompt] : [],
+      {
+        input: spawn.useArgv ? undefined : prompt,
+        cwd: ws,
+        timeout: timeoutMs,
+        maxBuffer: 1024 * 1024 * 12,
+        env: {
+          ...process.env,
+          AEGIS_WORKSPACE: ws,
+          AEGIS_REPO_PATH: ws,
+          OPENAI_CODEX_MODEL_INTERACTIVE: model,
+          OPENAI_CODEX_REASONING_EFFORT_INTERACTIVE: reasoningEffort,
+          FORCE_COLOR: "0",
+          NO_COLOR: "1",
+        },
+      },
+    );
+    const output = String(stdout || "").trim();
+    console.log("[model-bridge] codex duration ms:", Date.now() - startedAt);
+    if (String(stderr || "").trim()) {
+      console.error("[model-bridge codex stderr]", String(stderr).slice(0, 2000));
+    }
+    if (!output) {
+      return [
+        "OpenAI Codex returned no visible text output.",
+        "",
+        "Diagnostics:",
+        `- provider: openai-codex`,
+        `- model: ${model}`,
+        `- reasoning: ${reasoningEffort}`,
+        `- provider script: ${CODEX_PROVIDER}`,
+      ].join("\n");
+    }
+    return output;
+  } catch (err) {
+    throw enrichProviderError(err);
+  }
+}
+
+async function callProvider(
+  providerModel,
+  prompt,
+  { messageCount = 0, workspace, requestModel } = {}
+) {
+  if (providerModel === "openai-codex") {
+    return callOpenAICodex(prompt, { messageCount, workspace, requestModel });
+  }
   if (providerModel === "cursor-composer-2") {
     return callCursor(prompt, { messageCount, workspace });
   }
@@ -658,6 +848,13 @@ async function callProvider(providerModel, prompt, { messageCount = 0, workspace
       );
       // #endregion
       return callCursor(prompt, { messageCount, workspace });
+    }
+
+    if (parsed.isAuthFailure && isCodexReady()) {
+      console.warn(
+        "[model-bridge] Kiro not logged in; auto-fallback to openai-codex"
+      );
+      return callOpenAICodex(prompt, { messageCount, workspace });
     }
 
     throw enrichProviderError(err);
@@ -901,9 +1098,15 @@ function providerStatusPayload() {
     available: modelState.listProviders().map((id) => ({
       id,
       label: PROVIDERS[id]?.label || id,
-      ready: id === "cursor-composer-2" ? modelState.isCursorConfigured() : true,
+      ready:
+        id === "cursor-composer-2"
+          ? modelState.isCursorConfigured()
+          : id === "openai-codex"
+            ? modelState.isOpenAICodexConfigured()
+            : true,
     })),
     cursorConfigured: modelState.isCursorConfigured(),
+    codexConfigured: modelState.isOpenAICodexConfigured(),
     cursorBridgeMode: modelState.getCursorBridgeMode(),
     statePath: modelState.STATE_PATH,
   };
@@ -925,6 +1128,13 @@ app.get("/health", (_req, res) => {
         configured: modelState.isCursorConfigured(),
         bridgeMode: modelState.getCursorBridgeMode(),
       },
+      codex: {
+        model: "openai-codex",
+        configured: modelState.isOpenAICodexConfigured(),
+        transport: "codex-cli",
+        interactiveModel: openaiCodex.resolveModel("interactive"),
+        auditModel: openaiCodex.resolveModel("audit"),
+      },
     },
     kiroProvider: KIRO_PROVIDER,
   });
@@ -936,6 +1146,7 @@ app.get("/health/ready", async (_req, res) => {
       ok: true,
       kiro: "skipped",
       cursor: modelState.isCursorConfigured() ? "configured" : "not_configured",
+      codex: modelState.isOpenAICodexConfigured() ? "configured" : "not_configured",
     });
   }
 
@@ -963,12 +1174,14 @@ app.get("/health/ready", async (_req, res) => {
       ok: true,
       kiro: "ok",
       cursor: modelState.isCursorConfigured() ? "configured" : "not_configured",
+      codex: modelState.isOpenAICodexConfigured() ? "configured" : "not_configured",
     });
   } catch (err) {
     return res.status(503).json({
       ok: false,
       kiro: String(err?.message || err),
       cursor: modelState.isCursorConfigured() ? "configured" : "not_configured",
+      codex: modelState.isOpenAICodexConfigured() ? "configured" : "not_configured",
     });
   }
 });
@@ -981,7 +1194,7 @@ app.post("/v1/admin/provider", (req, res) => {
   const provider = String(req.body?.provider || "").trim();
   if (!provider) {
     return res.status(400).json({
-      error: { message: "Missing provider. Use kiro-current or cursor-composer-2.", type: "invalid_request_error" },
+      error: { message: "Missing provider. Use kiro-current, cursor-composer-2, or openai-codex.", type: "invalid_request_error" },
     });
   }
 
@@ -998,6 +1211,15 @@ app.post("/v1/admin/provider", (req, res) => {
     return res.status(400).json({
       error: {
         message: modelState.CURSOR_NOT_CONFIGURED_MESSAGE,
+        type: "invalid_request_error",
+      },
+    });
+  }
+
+  if (provider === "openai-codex" && !modelState.isOpenAICodexConfigured()) {
+    return res.status(400).json({
+      error: {
+        message: modelState.CODEX_NOT_CONFIGURED_MESSAGE,
         type: "invalid_request_error",
       },
     });
@@ -1022,14 +1244,25 @@ app.post("/v1/admin/provider", (req, res) => {
 });
 
 app.get("/v1/models", (_req, res) => {
+  const codexVariants = codexVariantCatalog();
   res.json({
     object: "list",
-    data: modelState.listProviders().map((id) => ({
-      id,
-      object: "model",
-      created: Math.floor(Date.now() / 1000),
-      owned_by: PROVIDERS[id]?.ownedBy || "local",
-    })),
+    data: [
+      ...modelState.listProviders().map((id) => ({
+        id,
+        object: "model",
+        created: Math.floor(Date.now() / 1000),
+        owned_by: PROVIDERS[id]?.ownedBy || "local",
+      })),
+      ...codexVariants
+        .filter((item) => item.id !== "openai-codex")
+        .map((item) => ({
+          id: item.id,
+          object: "model",
+          created: Math.floor(Date.now() / 1000),
+          owned_by: "openai",
+        })),
+    ],
   });
 });
 
@@ -1078,9 +1311,9 @@ app.post("/v1/chat/completions", async (req, res) => {
       });
     }
 
-    if (!_providerAuthCache.cursor && !_providerAuthCache.kiro) {
+    if (!_providerAuthCache.cursor && !_providerAuthCache.kiro && !_providerAuthCache.codex) {
       const msg =
-        "No bridge provider ready. Run: agent login OR kiro-cli login (then restart kiro-openai-bridge).";
+        "No bridge provider ready. Run: agent login OR kiro-cli login OR set OPENAI_API_KEY (then restart kiro-openai-bridge).";
       if (stream) {
         writeSseErrorAndEnd(res, 503, {
           error: { message: msg, type: "connection_error" },
@@ -1150,7 +1383,11 @@ app.post("/v1/chat/completions", async (req, res) => {
       return;
     }
 
-    const output = await callProvider(providerModel, prompt, { messageCount, workspace });
+    const output = await callProvider(providerModel, prompt, {
+      messageCount,
+      workspace,
+      requestModel,
+    });
     return res.json(nonStreamResponse({ id, model: providerModel, content: output }));
   } catch (err) {
     console.error("[model-bridge error]", err);
@@ -1194,11 +1431,12 @@ app.listen(port, "127.0.0.1", () => {
   console.log(`Hermes max messages: ${HERMES_MAX_MESSAGES}; cursor agent max: ${CURSOR_AGENT_MAX_MESSAGES}`);
   console.log(`Kiro provider: ${KIRO_PROVIDER}`);
   console.log(`Cursor provider: ${CURSOR_PROVIDER}`);
+  console.log(`Codex provider: ${CODEX_PROVIDER}`);
   console.log(`State file: ${modelState.STATE_PATH}`);
   refreshProviderAuthCache()
     .then((auth) => {
       console.log(
-        `[model-bridge] provider auth: cursor=${auth.cursor} kiro=${auth.kiro}`
+        `[model-bridge] provider auth: cursor=${auth.cursor} codex=${auth.codex} kiro=${auth.kiro}`
       );
     })
     .catch(() => {});
