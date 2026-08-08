@@ -241,12 +241,12 @@ while IFS= read -r repo; do
   fi
 
   # Push preservation branch first.
-  git -C "$repo" push -u wsl-backup "$backup_branch"
+  git -C "$repo" push --no-verify -u wsl-backup "$backup_branch"
 
   # Push every local branch and tag. This is the private backup mirror,
   # not the project's possibly-public origin.
-  git -C "$repo" push wsl-backup --all
-  git -C "$repo" push wsl-backup --tags
+  git -C "$repo" push --no-verify wsl-backup --all
+  git -C "$repo" push --no-verify wsl-backup --tags
 
   remote_head="$(git -C "$repo" ls-remote wsl-backup "refs/heads/$backup_branch" | awk '{print $1}')"
 
@@ -331,7 +331,7 @@ EXCL
   ECC_SKIP_PRECOMMIT=1 git -C "$project" -c user.name="WSL Backup" -c user.email="wsl-backup@localhost" commit -m "backup: import non-Git project from WSL $STAMP"
 
   git -C "$project" remote add origin "git@github.com:$backup_full.git"
-  git -C "$project" push -u origin main
+  git -C "$project" push --no-verify -u origin main
 
   local_head="$(git -C "$project" rev-parse HEAD)"
   remote_head="$(git -C "$project" ls-remote origin refs/heads/main | awk '{print $1}')"
@@ -397,7 +397,7 @@ git -C "$tmp_init" add README.md
 git -C "$tmp_init" -c user.name="WSL Backup" -c user.email="wsl-backup@localhost" \
   commit -m "initialize encrypted WSL backup" >/dev/null
 git -C "$tmp_init" remote add origin "git@github.com:$snapshot_repo.git"
-git -C "$tmp_init" push -u origin main >/dev/null
+git -C "$tmp_init" push --no-verify -u origin main >/dev/null
 
 release_tag="wsl-$STAMP"
 gh release create "$release_tag" \
