@@ -98,3 +98,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Broken legacy copy; recovered separately
+/projects/retropick-copy/
