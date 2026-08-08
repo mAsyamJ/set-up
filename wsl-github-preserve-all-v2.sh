@@ -210,7 +210,7 @@ while IFS= read -r repo; do
   # Make a dedicated preservation branch so the user's existing branch is not rewritten.
   orig_branch="$(git -C "$repo" symbolic-ref --short -q HEAD || true)"
   orig_head="$(git -C "$repo" rev-parse HEAD)"
-  backup_branch="backup/wsl-$STAMP"
+  backup_branch="backup/wsl-$STAMP-$(path_hash "$repo")"
 
   # A worktree cannot always check out an arbitrary branch if another worktree owns it,
   # but a uniquely named backup branch is safe.
