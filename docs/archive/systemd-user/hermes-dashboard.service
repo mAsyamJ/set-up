@@ -1,0 +1,14 @@
+[Unit]
+# ARCHIVED: unsafe legacy unit; not an activation source.
+Description=Hermes Kanban Dashboard - optional loopback service
+After=hermes-gateway.service
+
+[Service]
+Type=simple
+Environment=HOME=@HOME@
+ExecStart=@HERMES_BIN@ dashboard --no-open --skip-build --host 127.0.0.1
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

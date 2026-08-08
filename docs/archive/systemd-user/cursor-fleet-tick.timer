@@ -1,0 +1,11 @@
+[Unit]
+# ARCHIVED: unsafe legacy unit; not an activation source.
+Description=Cursor Fleet tick every 30s (alternative to cursor-fleet.service daemon)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=30s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

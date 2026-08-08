@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Idempotent: create ready PABTI tasks on aegis-hackathon when board has no ready work.
 set -euo pipefail
+echo "aegis-kanban-seed-ready: disabled legacy queue mutation" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

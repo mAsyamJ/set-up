@@ -49,8 +49,9 @@ worktree_allocate() {
     return 0
   fi
 
-  if [ -d "$wt_path" ]; then
-    rm -rf "$wt_path"
+  if [ -e "$wt_path" ]; then
+    echo "worktree path exists but is not registered; preserving: $wt_path" >&2
+    return 1
   fi
 
   if git -C "$project_root" show-ref --verify --quiet "refs/heads/${branch}"; then
@@ -75,13 +76,18 @@ worktree_release() {
   branch="agent/${task_id}"
 
   if git -C "$project_root" worktree list --porcelain 2>/dev/null | grep -q "^worktree ${wt_path}$"; then
-    git -C "$project_root" worktree remove --force "$wt_path" 2>/dev/null || rm -rf "$wt_path"
-  elif [ -d "$wt_path" ]; then
-    rm -rf "$wt_path"
+    if [ -n "$(git -C "$wt_path" status --porcelain --untracked-files=all)" ]; then
+      echo "worktree is dirty; preserving: $wt_path" >&2
+      return 1
+    fi
+    git -C "$project_root" worktree remove "$wt_path"
+  elif [ -e "$wt_path" ]; then
+    echo "unregistered worktree path exists; preserving: $wt_path" >&2
+    return 1
   fi
 
   if [ "$delete_branch" = "1" ]; then
-    git -C "$project_root" branch -D "$branch" 2>/dev/null || true
+    git -C "$project_root" branch -d "$branch"
   fi
 }
 

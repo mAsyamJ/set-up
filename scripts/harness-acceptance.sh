@@ -1,38 +1,34 @@
 #!/usr/bin/env bash
-# Full doc-10 acceptance per plan Wave 8
+# Non-mutating harness acceptance. It never installs dependencies or starts services.
 set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/paths.sh
 . "$SCRIPT_DIR/lib/paths.sh"
 
-TMP="${1:-/tmp/harness-accept-$$}"
-rm -rf "$TMP"
-mkdir -p "$TMP"
-
-echo "=== harness acceptance ==="
 cd "$AGENT_HARNESS_HOME"
-npm install --silent
+cli/harness doctor
+cli/harness doctor --dependency-install
+bash tests/doctor-storage.test.sh
+find cli scripts -maxdepth 2 -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+python3 -m json.tool projects/registry.example.json >/dev/null
+python3 -m json.tool agents/registry.json >/dev/null
+python3 -m json.tool tools/policies/default.tool-policy.json >/dev/null
+python3 -m json.tool tools/policies/command-catalog.json >/dev/null
+python3 -c '
+import pathlib
+import sys
+for name in sys.argv[1:]:
+    compile(pathlib.Path(name).read_text(encoding="utf-8"), name, "exec")
+' scripts/project-registry.py tools/fs-broker/safe_fs.py
+git diff --check
+npm run lint
+
+if [ ! -x node_modules/.bin/tsx ] || [ ! -x node_modules/.bin/tsc ]; then
+  echo "FAIL: dependencies absent; run the reviewed locked install after dependency readiness passes" >&2
+  exit 2
+fi
+
+npm run typecheck
 npm run build
 npm test
-
-cli/harness init-project "$TMP" demo-app
-cli/harness doctor "$TMP/demo-app"
-cli/harness obsidian init "$TMP/demo-app"
-cli/harness index-project "$TMP/demo-app"
-cli/harness new-task "$TMP/demo-app" "Audit architecture"
-cli/harness run-task "$TMP/demo-app" project.inspect
-
-timeout 2 cli/harness start-mcp </dev/null >/dev/null 2>&1 || true
-
-npm run start-a2a >/tmp/harness-a2a.log 2>&1 &
-A2A_PID=$!
-sleep 1
-curl -sf http://127.0.0.1:8790/.well-known/agent.json | head -c 200
-echo
-kill "$A2A_PID" 2>/dev/null || true
-wait "$A2A_PID" 2>/dev/null || true
-
-cli/harness smoke projects/aegis-rpc || true
-scripts/harness-validation.sh projects/aegis-rpc
-
-echo "=== acceptance PASSED ==="
+echo "=== harness acceptance PASSED ==="

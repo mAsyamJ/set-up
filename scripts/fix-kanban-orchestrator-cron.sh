@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Migrate kanban-orchestrator-tick from LLM+bridge to script-only (no Cursor/Kiro calls).
 set -euo pipefail
+echo "fix-kanban-orchestrator-cron: disabled; Hermes cron is not activated" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

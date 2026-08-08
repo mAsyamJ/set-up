@@ -4,6 +4,9 @@
 # Otherwise falls back to hermes kanban dispatch via bridge profiles.
 set -euo pipefail
 
+echo "aegis-kanban-dispatch-once: disabled; transactional Harness workers are not active" >&2
+exit 2
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh
 source "${SCRIPT_DIR}/lib/paths.sh"
@@ -38,7 +41,7 @@ dispatch_board_once() {
     return 0
   fi
 
-  if [ "${AEGIS_CURSOR_FLEET_ENABLED:-1}" = "1" ]; then
+  if [ "${AEGIS_CURSOR_FLEET_ENABLED:-0}" = "1" ]; then
     echo "aegis-kanban-dispatch-once: board=$board ready=$ready → cursor-fleet once (max concurrent=$max)"
     AEGIS_KANBAN_BOARD="$board" "${AGENT_HARNESS_HOME}/cli/harness" cursor-fleet once
     return 0

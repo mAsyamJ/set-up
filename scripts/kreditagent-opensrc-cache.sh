@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Cache OpenSrc paths for KreditAgent external study repos (not vendored in tree).
 set -Eeuo pipefail
+echo "kreditagent-opensrc-cache: disabled legacy product cache" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

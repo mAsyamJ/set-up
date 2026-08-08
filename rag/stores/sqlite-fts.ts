@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 import type { SourceKind } from "../policies/source-priority.js";
+import { projectStateDir } from "../../core/state/sqlite.js";
 
 export type IndexedDocument = {
   path: string;
@@ -62,5 +63,5 @@ export class RagStore {
 }
 
 export function ragStateDir(projectRoot: string): string {
-  return path.join(projectRoot, ".harness", "state");
+  return projectStateDir(projectRoot);
 }

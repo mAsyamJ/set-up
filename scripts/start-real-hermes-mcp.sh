@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+echo "start-real-hermes-mcp: disabled legacy Hermes MCP server" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

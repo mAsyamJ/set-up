@@ -3,6 +3,8 @@
 # These are external study sources (MEV-Share, Artemis, flashloan examples, DEX math, ML libs, etc.).
 # Do not vendor-copy them into the project tree — use opensrc path or the generated .path files.
 set -Eeuo pipefail
+echo "mev-share-backrun-opensrc-cache: disabled legacy product cache" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

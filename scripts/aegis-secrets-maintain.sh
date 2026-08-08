@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Repair headless credentials: restart services, refresh Cursor auth (no secret echo).
 set -euo pipefail
+echo "aegis-secrets-maintain: disabled legacy service credential flow" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

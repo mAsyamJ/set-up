@@ -64,3 +64,6 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+> Historical model-specific instructions. The durable repository contract is
+> `AGENTS.md`; conflicting Hermes-first or embedded-project rules in this file
+> are not active during the Agent Harness v1 migration.

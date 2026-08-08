@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+echo "aegis-opensrc-cache: disabled legacy product cache" >&2
+exit 2
 
 mkdir -p research/opensrc-paths research/notes
 : > research/notes/opensrc-cache.log

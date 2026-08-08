@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Idempotent: seed post-MVP / stretch ready tasks when board is idle (no ready/running).
 set -euo pipefail
+echo "aegis-kanban-seed-plan-backlog: disabled legacy product automation" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

@@ -1,0 +1,14 @@
+[Unit]
+# ARCHIVED: unsafe legacy unit; not an activation source.
+Description=Timer — Aegis Kanban dispatch (Hermes, max 2 when ready>0)
+
+[Timer]
+# Lane O: orchestrate + dispatch without opening Telegram. Tune via drop-in if too chatty.
+OnBootSec=90s
+OnUnitActiveSec=5min
+AccuracySec=1min
+Persistent=true
+Unit=aegis-kanban-dispatch.service
+
+[Install]
+WantedBy=timers.target

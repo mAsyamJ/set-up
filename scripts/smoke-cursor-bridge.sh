@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Smoke-test Cursor provider on kiro-openai-bridge (health + optional completion).
 set -euo pipefail
+echo "smoke-cursor-bridge: disabled; the legacy bridge is not part of Harness v1" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

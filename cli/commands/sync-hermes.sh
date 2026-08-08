@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Sync Agent Harness OS skills + memory rules + MCP into Hermes (~/.hermes)
 set -euo pipefail
+echo "sync-hermes: disabled; use staged isolated Hermes profiles" >&2
+exit 2
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../scripts/lib/paths.sh
 . "$SCRIPT_DIR/../../scripts/lib/paths.sh"

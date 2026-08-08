@@ -1,7 +1,0 @@
-[Unit]
-Description=Aegis local stack (Kiro bridge + Hermes gateway)
-After=network-online.target
-Wants=kiro-openai-bridge.service hermes-gateway.service hermes-dashboard.service wsl-portproxy-refresh.service
-
-[Install]
-WantedBy=default.target

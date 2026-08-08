@@ -5,6 +5,8 @@ import { ToolGateway } from "./tool-gateway.js";
 import { HarnessStore, projectStateDir } from "../../core/state/sqlite.js";
 import { createRunId } from "../../core/types.js";
 import { createHash } from "node:crypto";
+import { redactedJson } from "../../core/security/redaction.js";
+import { fixedPrincipal } from "../../core/auth/principal.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const harnessRoot = path.resolve(__dirname, "../..");
@@ -19,7 +21,13 @@ async function main() {
   const runId = createRunId();
   const store = new HarnessStore(projectStateDir(absProject));
   store.startRun(runId, absProject);
-  const gw = new ToolGateway({ projectRoot: absProject, harnessRoot, runId });
+  const gw = new ToolGateway({
+    projectRoot: absProject,
+    harnessRoot,
+    runId,
+    workspaceId: createHash("sha256").update(absProject).digest("hex").slice(0, 32),
+    principal: fixedPrincipal("audit")
+  });
   let args: Record<string, unknown> = {};
   const raw = rest.join(" ").trim();
   if (raw && raw !== "{}") args = JSON.parse(raw) as Record<string, unknown>;
@@ -30,20 +38,21 @@ async function main() {
     id: `${runId}_${tool}`,
     runId,
     tool,
-    args: JSON.stringify(args),
-    result: JSON.stringify(result),
+    args: redactedJson(args),
+    result: redactedJson(result),
     ok: result.ok,
   });
   store.logToolCall({
     id: `${runId}_${tool}_tc`,
     runId,
     tool,
-    argsHash: createHash("sha256").update(JSON.stringify(args)).digest("hex").slice(0, 16),
+    argsHash: createHash("sha256").update(redactedJson(args)).digest("hex").slice(0, 16),
     durationMs,
     ok: result.ok,
     createdAt: new Date().toISOString(),
   });
   store.endRun(runId, result.ok ? "completed" : "failed");
+  gw.close();
   store.close();
   console.log(JSON.stringify(result, null, 2));
   process.exit(result.ok ? 0 : 1);

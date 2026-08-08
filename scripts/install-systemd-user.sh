@@ -1,20 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "install-systemd-user: disabled; legacy batch service installation is quarantined" >&2
+exit 2
+
+if [ "${1:-}" != "--apply" ]; then
+  echo "Refusing to modify user services without explicit --apply." >&2
+  echo "Run diagnostics first: cli/harness doctor" >&2
+  exit 2
+fi
+shift
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh
 source "${SCRIPT_DIR}/lib/paths.sh"
 
 UNIT_SRC="${AEGIS_REPO_ROOT}/systemd/user"
 UNIT_DST="${AEGIS_SYSTEMD_USER_DIR}"
+[ -n "${AEGIS_RPC_ROOT:-}" ] && [ -d "$AEGIS_RPC_ROOT" ] || {
+  echo "Set AEGIS_RPC_ROOT to an existing registered project before rendering units." >&2
+  exit 2
+}
 
 mkdir -p "$UNIT_DST"
 
-MODEL_STATE="${AEGIS_REPO_ROOT}/runtime/aegis-model.json"
+MODEL_STATE="${AEGIS_MODEL_STATE}"
 if [ ! -f "$MODEL_STATE" ]; then
   mkdir -p "$(dirname "$MODEL_STATE")"
-  printf '%s\n' '{"defaultModel":"kiro-current","updatedAt":null,"updatedBy":"install"}' > "$MODEL_STATE"
-  echo "Seeded $MODEL_STATE (default: kiro-current)"
+  printf '%s\n' '{"defaultModel":null,"updatedAt":null,"updatedBy":"install"}' > "$MODEL_STATE"
+  chmod 600 "$MODEL_STATE"
+  echo "Seeded $MODEL_STATE (no default model)"
 fi
 
 for unit in kiro-openai-bridge.service hermes-gateway.service aegis-stack.target aegis-kanban-dispatch.service cursor-fleet.service wsl-portproxy-refresh.service; do
@@ -24,10 +39,10 @@ for unit in kiro-openai-bridge.service hermes-gateway.service aegis-stack.target
     echo "ERROR: missing unit file: $src"
     exit 1
   fi
-  if grep -q '@AGENT_HARNESS_HOME@' "$src" 2>/dev/null; then
+  if grep -q '@' "$src" 2>/dev/null; then
     AEGIS_NODE_DIR="$(dirname "${AEGIS_NODE:-$(command -v node)}")"
     rm -f "$dst"
-    sed "s|@AGENT_HARNESS_HOME@|${AGENT_HARNESS_HOME}|g; s|@AEGIS_RPC_ROOT@|${AEGIS_RPC_ROOT}|g; s|@AEGIS_NODE@|${AEGIS_NODE:-$(command -v node)}|g; s|@AEGIS_NODE_DIR@|${AEGIS_NODE_DIR}|g; s|@HOME@|${HOME}|g" "$src" > "$dst"
+    sed "s|@AGENT_HARNESS_HOME@|${AGENT_HARNESS_HOME}|g; s|@AEGIS_RPC_ROOT@|${AEGIS_RPC_ROOT}|g; s|@AEGIS_NODE@|${AEGIS_NODE:-$(command -v node)}|g; s|@AEGIS_NODE_DIR@|${AEGIS_NODE_DIR}|g; s|@HARNESS_STATE_HOME@|${HARNESS_STATE_HOME}|g; s|@HERMES_BIN@|${HERMES_BIN}|g; s|@HOME@|${HOME}|g" "$src" > "$dst"
     echo "Installed $dst (from template with paths)"
   else
     ln -sf "$src" "$dst"
@@ -36,68 +51,7 @@ for unit in kiro-openai-bridge.service hermes-gateway.service aegis-stack.target
 done
 
 systemctl --user daemon-reload
-systemctl --user enable aegis-stack.target
-systemctl --user restart kiro-openai-bridge.service
-
-echo "Waiting for Kiro bridge health at ${KIRO_BRIDGE_URL}/health ..."
-ready=0
-for _ in $(seq 1 30); do
-  if curl -sf "${KIRO_BRIDGE_URL}/health" >/dev/null 2>&1; then
-    ready=1
-    break
-  fi
-  sleep 1
-done
-
-if [ "$ready" -ne 1 ]; then
-  echo "WARN: bridge health check failed. Logs:"
-  journalctl --user -u kiro-openai-bridge -n 20 --no-pager -l || true
-  exit 1
-fi
-
-systemctl --user start aegis-stack.target
-
-for skill_name in aegis-provider-switch aegis-secrets-maintain; do
-  PROVIDER_SKILL_SRC="${AEGIS_REPO_ROOT}/docs/kit/templates/hermes-${skill_name}/SKILL.md"
-  PROVIDER_SKILL_DST="${HOME}/.hermes/skills/${skill_name}/SKILL.md"
-  if [ -f "$PROVIDER_SKILL_SRC" ]; then
-    mkdir -p "$(dirname "$PROVIDER_SKILL_DST")"
-    cp "$PROVIDER_SKILL_SRC" "$PROVIDER_SKILL_DST"
-    echo "Installed Hermes skill: $PROVIDER_SKILL_DST"
-  fi
-done
-if systemctl --user is-active --quiet hermes-gateway 2>/dev/null; then
-  systemctl --user restart hermes-gateway.service
-  echo "Restarted hermes-gateway (pick up skills)"
-fi
-
-# Agent Harness OS — Hermes-only bootstrap
-if [ -x "${AGENT_HARNESS_HOME}/scripts/hermes-bootstrap-harness.sh" ]; then
-  bash "${AGENT_HARNESS_HOME}/scripts/hermes-bootstrap-harness.sh" "${AEGIS_DEFAULT_PROJECT:-aegis-rpc}" || \
-    "${AGENT_HARNESS_HOME}/cli/harness" sync-hermes "${AEGIS_RPC_ROOT}" 2>/dev/null || true
-elif [ -x "${AGENT_HARNESS_HOME}/cli/harness" ]; then
-  "${AGENT_HARNESS_HOME}/cli/harness" sync-hermes "${AEGIS_RPC_ROOT}" 2>/dev/null || \
-    bash "${AGENT_HARNESS_HOME}/cli/commands/sync-hermes.sh" "${AEGIS_RPC_ROOT}" || true
-fi
-
-chmod +x "${AEGIS_REPO_ROOT}/scripts/aegis-secrets-health.sh" \
-  "${AEGIS_REPO_ROOT}/scripts/aegis-secrets-maintain.sh" \
-  "${AEGIS_REPO_ROOT}/scripts/install-cursor-fleet-systemd.sh" \
-  "${AGENT_HARNESS_HOME}/cli/commands/cursor-fleet.sh" 2>/dev/null || true
-
-if [ -x "${AGENT_HARNESS_HOME}/scripts/install-cursor-fleet-systemd.sh" ]; then
-  bash "${AGENT_HARNESS_HOME}/scripts/install-cursor-fleet-systemd.sh" || true
-fi
-
-# Legacy path: direct kiro-cli Telegram bot (no Hivemind hooks). Keep disabled.
-if systemctl --user list-unit-files telegram-kiro-gateway.service &>/dev/null; then
-  systemctl --user disable --now telegram-kiro-gateway.service 2>/dev/null || true
-  systemctl --user mask telegram-kiro-gateway.service 2>/dev/null || true
-  echo "telegram-kiro-gateway: disabled and masked (use hermes-gateway for Telegram)"
-fi
-
 echo
-echo "=== aegis-stack status ==="
-systemctl --user status kiro-openai-bridge hermes-gateway aegis-stack.target --no-pager -l || true
-echo
-curl -sf "${KIRO_BRIDGE_URL}/health" && echo
+echo "Units rendered and daemon reloaded."
+echo "No service was enabled, started, stopped, or restarted."
+echo "Fleet and legacy bridge remain disabled in their unit environments."

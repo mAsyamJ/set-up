@@ -1,28 +1,14 @@
 {
   "mcpServers": {
     "harness": {
-      "command": "node",
+      "command": "@NODE_BIN@",
       "args": [
-        "--import",
-        "tsx",
-        "@AGENT_HARNESS_HOME@/runtime/mcp/harness-mcp-server/src/server.ts"
+        "@AGENT_HARNESS_HOME@/dist/runtime/mcp/harness-mcp-server/src/entrypoints/cursor.js"
       ],
       "env": {
-        "AGENT_HARNESS_HOME": "@AGENT_HARNESS_HOME@",
-        "AEGIS_WORKSPACE": "@AEGIS_RPC_ROOT@",
-        "AEGIS_RPC_ROOT": "@AEGIS_RPC_ROOT@"
-      }
-    },
-    "real-hermes": {
-      "command": "node",
-      "args": [
-        "--import",
-        "tsx",
-        "@AGENT_HARNESS_HOME@/tools/real-hermes-mcp/src/server.ts"
-      ],
-      "env": {
-        "AEGIS_WORKSPACE": "@AGENT_HARNESS_HOME@",
-        "AEGIS_RPC_ROOT": "@AEGIS_RPC_ROOT@"
+        "HARNESS_PROJECT_ID": "@HARNESS_PROJECT_ID@",
+        "HARNESS_PROJECT_REGISTRY": "@HARNESS_PROJECT_REGISTRY@",
+        "HARNESS_STATE_HOME": "@HARNESS_STATE_HOME@"
       }
     }
   }

@@ -1,0 +1,13 @@
+{
+  "schema": "agent-harness.projects.v2",
+  "pathBase": "registry",
+  "projects": {
+    "example": {
+      "id": "00000000-0000-4000-8000-000000000000",
+      "path": "/absolute/machine-local/path",
+      "displayName": "Example",
+      "provenance": "documented-remote-or-local",
+      "executionPolicy": "read-only"
+    }
+  }
+}

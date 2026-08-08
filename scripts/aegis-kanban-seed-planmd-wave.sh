@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Idempotent: plan.md all-agent wave per 2026-05-21_001200-orchestrate-plan-md-all-agents-handoff-pabti.md
 set -euo pipefail
+echo "aegis-kanban-seed-planmd-wave: disabled legacy product automation" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

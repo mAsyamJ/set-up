@@ -1,19 +1,95 @@
 {
+  "version": "2026-07-23.v1",
   "tools": {
-    "repo.read": { "risk": "R0", "default": "allow" },
-    "repo.search": { "risk": "R0", "default": "allow" },
-    "git.status": { "risk": "R0", "default": "allow" },
-    "git.diff": { "risk": "R0", "default": "allow" },
-    "task.create": { "risk": "R1", "default": "allow" },
-    "task.move": { "risk": "R1", "default": "allow" },
-    "project.inspect": { "risk": "R0", "default": "allow" },
-    "verify.run": { "risk": "R1", "default": "allow" },
-    "rag.search": { "risk": "R0", "default": "allow" },
-    "patch.propose": { "risk": "R2", "default": "allow" },
-    "repo.apply_patch": { "risk": "R2", "default": "deny" },
-    "shell.run": { "risk": "R3", "default": "deny" },
-    "github.push": { "risk": "R4", "default": "deny" },
-    "secrets.read": { "risk": "R5", "default": "deny" }
+    "harness.health": { "risk": "R0", "default": "deny", "approval": "never" },
+    "project.list": { "risk": "R0", "default": "deny", "approval": "never" },
+    "project.inspect": { "risk": "R0", "default": "deny", "approval": "never" },
+    "repo.read": { "risk": "R0", "default": "deny", "approval": "never" },
+    "repo.search": { "risk": "R0", "default": "deny", "approval": "never" },
+    "git.status": { "risk": "R0", "default": "deny", "approval": "never" },
+    "git.diff": { "risk": "R0", "default": "deny", "approval": "never" },
+    "rag.search": { "risk": "R1", "default": "deny", "approval": "never" },
+    "task.list": { "risk": "R1", "default": "deny", "approval": "never" },
+    "task.get": { "risk": "R1", "default": "deny", "approval": "never" },
+    "task.submit": { "risk": "R2", "default": "deny", "approval": "never" },
+    "action.propose": { "risk": "R2", "default": "deny", "approval": "never" },
+    "workspace.write": { "risk": "R3", "default": "deny", "approval": "exact" },
+    "verify.run": { "risk": "R3", "default": "deny", "approval": "exact" },
+    "worktree.commit": { "risk": "R3", "default": "deny", "approval": "exact" },
+    "task.review": { "risk": "R3", "default": "deny", "approval": "exact" },
+    "shell.run": { "risk": "R4", "default": "deny", "approval": "unsupported" },
+    "github.push": { "risk": "R4", "default": "deny", "approval": "unsupported" },
+    "git.merge": { "risk": "R4", "default": "deny", "approval": "unsupported" },
+    "deploy.run": { "risk": "R5", "default": "deny", "approval": "unsupported" },
+    "approval.respond": { "risk": "R5", "default": "deny", "approval": "unsupported" },
+    "secrets.read": { "risk": "R5", "default": "deny", "approval": "unsupported" }
+  },
+  "profiles": {
+    "audit": {
+      "allowedTools": [
+        "harness.health",
+        "project.list",
+        "project.inspect",
+        "repo.read",
+        "repo.search",
+        "git.status",
+        "git.diff",
+        "rag.search",
+        "task.list",
+        "task.get"
+      ]
+    },
+    "cursor-interactive": {
+      "allowedTools": [
+        "harness.health",
+        "project.list",
+        "project.inspect",
+        "repo.read",
+        "repo.search",
+        "git.status",
+        "git.diff",
+        "rag.search",
+        "task.list",
+        "task.get",
+        "task.submit",
+        "action.propose"
+      ]
+    },
+    "hermes-operator": {
+      "allowedTools": [
+        "harness.health",
+        "project.list",
+        "project.inspect",
+        "rag.search",
+        "task.list",
+        "task.get",
+        "task.submit"
+      ]
+    },
+    "worker": {
+      "allowedTools": [
+        "harness.health",
+        "project.inspect",
+        "repo.read",
+        "repo.search",
+        "git.status",
+        "git.diff",
+        "task.get",
+        "action.propose",
+        "workspace.write",
+        "verify.run",
+        "worktree.commit",
+        "task.review"
+      ]
+    },
+    "human-operator": {
+      "allowedTools": [
+        "harness.health",
+        "project.list",
+        "task.list",
+        "task.get"
+      ]
+    }
   },
   "forbiddenPatterns": [
     "rm -rf",
@@ -23,14 +99,5 @@
     "chmod 777",
     "cat .env",
     "printenv"
-  ],
-  "allowedShellCommands": [
-    "pnpm test",
-    "pnpm typecheck",
-    "pnpm lint",
-    "npm test",
-    "npm run typecheck",
-    "git status",
-    "git diff"
   ]
 }

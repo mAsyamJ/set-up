@@ -1,41 +1,5 @@
 {
-  "schema": "agent-harness.projects.v1",
-  "default": "aegis-rpc",
-  "projects": {
-    "aegis-rpc": {
-      "path": "projects/aegis-rpc",
-      "kanban": "aegis-hackathon",
-      "displayName": "Aegis RPC"
-    },
-    "kreditagent": {
-      "path": "projects/kreditagent",
-      "kanban": "kreditagent-hackathon",
-      "displayName": "KreditAgent"
-    },
-    "retropick": {
-      "path": "projects/retropick",
-      "kanban": "retropick-v1",
-      "displayName": "RetroPick"
-    },
-    "ops": {
-      "path": "projects/ops",
-      "kanban": "agentic-ops",
-      "displayName": "Agentic Ops"
-    },
-    "arbeyes-defi": {
-      "path": "projects/defi-lab/arbeyes-defi",
-      "kanban": "arbeyes-defi-v1",
-      "displayName": "ArbEyes DeFi"
-    },
-    "mev-share-backrun-flashloan-arbitrage": {
-      "path": "projects/defi-lab/mev_share_backrun_flashloan_arbitrage",
-      "kanban": "mev-share-backrun-v1",
-      "displayName": "MEV Share Backrun Flashloan Arbitrage"
-    },
-    "midnight-audit": {
-      "path": "projects/security-researcher/midnight-audit",
-      "kanban": "midnight-audit",
-      "displayName": "Midnight Audit"
-    }
-  }
+  "schema": "agent-harness.projects.v2",
+  "pathBase": "registry",
+  "projects": {}
 }

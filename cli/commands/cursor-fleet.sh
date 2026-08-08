@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+echo "cursor-fleet: disabled; approval, lease, recovery, and canary gates have not passed" >&2
+exit 2
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/../../scripts/lib/paths.sh"
 

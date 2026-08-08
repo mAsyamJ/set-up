@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Idempotently merge harness MCP into ~/.hermes/config.yaml (text-safe; config may contain prose)
 set -euo pipefail
+echo "merge-hermes-harness-mcp: disabled; use staged isolated Hermes profiles" >&2
+exit 2
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh
 . "$SCRIPT_DIR/lib/paths.sh"

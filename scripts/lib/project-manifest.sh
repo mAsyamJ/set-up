@@ -3,7 +3,12 @@
 # shellcheck shell=bash
 
 project_registry_file() {
-  echo "${AGENT_HARNESS_HOME}/projects/registry.json"
+  local local_registry="${HARNESS_PROJECT_REGISTRY:-${XDG_CONFIG_HOME:-${HOME}/.config}/agent-harness/projects.json}"
+  if [ -f "$local_registry" ]; then
+    echo "$local_registry"
+  else
+    echo "${AGENT_HARNESS_HOME}/projects/registry.json"
+  fi
 }
 
 project_root_from_name() {
@@ -16,9 +21,11 @@ import json, os, sys
 reg = json.load(open('$reg'))
 name = sys.argv[1]
 home = os.environ.get('AGENT_HARNESS_HOME', '$AGENT_HARNESS_HOME')
+registry_dir = os.path.dirname(os.path.abspath('$reg'))
 p = reg.get('projects', {}).get(name, {}).get('path')
 if p:
-    print(os.path.join(home, p) if not os.path.isabs(p) else p)
+    base = home if reg.get('pathBase', 'harness') == 'harness' else registry_dir
+    print(os.path.join(base, p) if not os.path.isabs(p) else p)
 " "$name" 2>/dev/null || true
 }
 
@@ -46,9 +53,11 @@ import json, os, sys
 reg = json.load(open('$reg'))
 proj = os.path.normpath(sys.argv[1])
 home = os.environ.get('AGENT_HARNESS_HOME', '$AGENT_HARNESS_HOME')
+registry_dir = os.path.dirname(os.path.abspath('$reg'))
 for name, cfg in reg.get('projects', {}).items():
     path = cfg.get('path', '')
-    abs_path = os.path.normpath(os.path.join(home, path) if not os.path.isabs(path) else path)
+    base = home if reg.get('pathBase', 'harness') == 'harness' else registry_dir
+    abs_path = os.path.normpath(os.path.join(base, path) if not os.path.isabs(path) else path)
     if abs_path == proj:
         print(cfg.get('kanban', ''))
         break

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+echo "diagnose-hivemind-capture: disabled legacy memory integration" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

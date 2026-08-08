@@ -1,0 +1,24 @@
+[Unit]
+# ARCHIVED: unsafe legacy unit; not an activation source.
+Description=Hermes Agent Gateway - optional operator
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=@HOME@
+Environment=HOME=@HOME@
+Environment=HERMES_HOME=@HOME@/.hermes
+Environment=PATH=@HOME@/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=@HERMES_BIN@ gateway run --replace
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=210
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

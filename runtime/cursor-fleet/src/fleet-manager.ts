@@ -39,7 +39,7 @@ function fleetStateDir(harnessRoot: string): string {
 
 function loadRegistryBoards(harnessRoot: string): string[] {
   const regPath = path.join(harnessRoot, "projects/registry.json");
-  if (!fs.existsSync(regPath)) return ["aegis-hackathon"];
+  if (!fs.existsSync(regPath)) return [];
   const reg = JSON.parse(fs.readFileSync(regPath, "utf8")) as {
     projects?: Record<string, { kanban?: string }>;
   };
@@ -47,7 +47,7 @@ function loadRegistryBoards(harnessRoot: string): string[] {
   for (const cfg of Object.values(reg.projects ?? {})) {
     if (cfg.kanban) boards.add(cfg.kanban);
   }
-  return boards.size ? [...boards] : ["aegis-hackathon"];
+  return [...boards];
 }
 
 function projectRootForBoard(harnessRoot: string, board: string, fallback: string): string {
@@ -92,10 +92,7 @@ export function loadFleetConfig(harnessRoot: string): FleetConfig {
     nodeId: process.env.AEGIS_CURSOR_FLEET_NODE_ID ?? "local-wsl",
     nodeCapacity: maxConcurrent,
     dryRun: process.env.AEGIS_CURSOR_FLEET_DRY_RUN === "1",
-    defaultProjectRoot:
-      process.env.AEGIS_WORKSPACE ??
-      process.env.AEGIS_RPC_ROOT ??
-      path.join(harnessRoot, "projects/aegis-rpc"),
+    defaultProjectRoot: process.env.AEGIS_WORKSPACE ?? process.env.AEGIS_RPC_ROOT ?? "",
   };
 }
 

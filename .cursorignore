@@ -1,7 +1,15 @@
-# Large reference docs — load on demand only
+# Historical and reference material: load explicitly, never index by default.
 MASTERPLAN.md
-research/source-research-results.md
 currentRepo.md
+MIGRATION_LOG.md
+REPO_RESTRUCTURE_AUDIT.md
+Untitled
+research/
+docs/kit/
+docs/research/
+docs/archive/
+.agent-plugins/
+skills/
 
 # Vendor skill bundles
 vendor/skills/
@@ -10,9 +18,34 @@ vendor/skills/
 # Tooling dependencies
 tools/**/node_modules/
 **/node_modules/
+**/.git/
+**/.next/
+**/.turbo/
+**/.vercel/
+**/dist/
+**/build/
+**/coverage/
+**/.harness/state/
+**/.harness/worktrees/
+**/.harness/index/
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.tar
+**/*.tar.gz
+**/*.tgz
+**/*.zip
+
+# Product repositories are opened as separate Cursor workspaces.
+projects/**
 
 # Legacy / archive
 tools/archive/
+tools/kiro-openai-bridge/
+tools/real-hermes-mcp/
 archive/
+runtime/cursor-fleet/
+runtime/hermes-kiro/
+runtime/hermes/memory-rules/
 
 prompts/repo-restructure-task.md

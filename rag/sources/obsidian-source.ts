@@ -3,11 +3,13 @@ import path from "node:path";
 import type { RagStore } from "../stores/sqlite-fts.js";
 import { isSecretPath } from "../../core/policy/path-policy.js";
 import { loadObsidianConfig, resolveVaultPath } from "../../integrations/obsidian/vault-config.js";
+import { redactText } from "../../core/security/redaction.js";
 
 function walkVault(dir: string, cb: (file: string) => void): void {
   if (!fs.existsSync(dir)) return;
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, ent.name);
+    if (ent.isSymbolicLink()) continue;
     if (ent.isDirectory()) {
       if (ent.name.startsWith(".")) continue;
       walkVault(full, cb);
@@ -34,11 +36,12 @@ export function indexObsidianVault(projectRoot: string, store: RagStore): number
     if (isSecretPath(file)) return;
     if (exclude.some((e) => rel.startsWith(e))) return;
     if (include.length && !include.some((i) => rel.startsWith(i))) return;
+    if (fs.statSync(file).size > 1_000_000) return;
     store.upsert({
       path: file,
       source: "obsidian",
       title: path.basename(file, ".md"),
-      body: fs.readFileSync(file, "utf8").slice(0, 50_000),
+      body: redactText(fs.readFileSync(file, "utf8")).slice(0, 50_000),
       mtime: fs.statSync(file).mtimeMs,
     });
     n++;

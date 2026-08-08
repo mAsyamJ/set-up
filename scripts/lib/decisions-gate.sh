@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 # Shared DECISIONS.md gate readers (no secret handling).
 aegis_decisions_file() {
-  local root="${AEGIS_RPC_ROOT:-${AGENT_HARNESS_HOME:-${AEGIS_REPO_ROOT:-$HOME/dev/Project/agent-harness}}/projects/aegis-rpc}"
+  local root="${AEGIS_WORKSPACE:-${AEGIS_RPC_ROOT:-}}"
+  [ -n "$root" ] || return 1
   echo "${root}/DECISIONS.md"
 }
 

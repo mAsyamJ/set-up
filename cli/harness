@@ -7,50 +7,31 @@ CMD="${1:-}"
 shift || true
 case "$CMD" in
   doctor)         exec "$HARNESS_ROOT/cli/commands/doctor.sh" "$@" ;;
-  status)         exec "$HARNESS_ROOT/cli/commands/status.sh" "$@" ;;
-  smoke)          exec "$HARNESS_ROOT/cli/commands/smoke.sh" "$@" ;;
   sync-cursor)    exec "$HARNESS_ROOT/cli/commands/sync-cursor.sh" "$@" ;;
-  sync-skills)    exec "$HARNESS_ROOT/cli/commands/sync-skills.sh" "$@" ;;
-  sync-hermes)    exec "$HARNESS_ROOT/cli/commands/sync-hermes.sh" "$@" ;;
-  sync-kanban)    exec "$HARNESS_ROOT/cli/commands/sync-kanban.sh" "$@" ;;
-  new-task)       exec "$HARNESS_ROOT/cli/commands/new-task.sh" "$@" ;;
-  verify-task)    exec "$HARNESS_ROOT/cli/commands/verify-task.sh" "$@" ;;
-  init-project)   exec "$HARNESS_ROOT/cli/commands/init-project.sh" "$@" ;;
-  link-project)   exec "$HARNESS_ROOT/cli/commands/link-project.sh" "$@" ;;
+  projects)       exec python3 "$HARNESS_ROOT/scripts/project-registry.py" "$@" ;;
+  approval)       exec "$HARNESS_ROOT/cli/commands/approval.sh" "$@" ;;
+  runtime)        exec "$HARNESS_ROOT/cli/commands/runtime.sh" "$@" ;;
+  task)           exec "$HARNESS_ROOT/cli/commands/task.sh" "$@" ;;
+  state)          exec "$HARNESS_ROOT/cli/commands/state.sh" "$@" ;;
+  worker)         exec "$HARNESS_ROOT/cli/commands/worker.sh" "$@" ;;
   switch-project) exec "$HARNESS_ROOT/cli/commands/switch-project.sh" "$@" ;;
-  index-project)  exec node --import tsx "$HARNESS_ROOT/tools/gateway/index-project.ts" "$@" ;;
-  run-task)
-    if [ -n "${2:-}" ] && echo "$2" | grep -q '\.md$'; then
-      exec node --import tsx "$HARNESS_ROOT/tools/gateway/run-supervisor.ts" "$@"
-    fi
-    exec "$HARNESS_ROOT/cli/commands/run-task.sh" "$@"
-    ;;
-  run-report)     exec node --import tsx "$HARNESS_ROOT/tools/gateway/run-report-cli.ts" "$@" ;;
   start-mcp)
-    PROJECT="${1:-${AEGIS_RPC_ROOT:-$HARNESS_ROOT/projects/aegis-rpc}}"
-    export AEGIS_WORKSPACE="$(cd "$PROJECT" && pwd)"
-    export AEGIS_RPC_ROOT="$AEGIS_WORKSPACE"
-    exec node --import tsx "$HARNESS_ROOT/runtime/mcp/harness-mcp-server/src/server.ts"
+    PROJECT_ID="${1:-${HARNESS_PROJECT_ID:-}}"
+    [ -n "$PROJECT_ID" ] || { echo "start-mcp: registered project ID or slug required" >&2; exit 2; }
+    export HARNESS_PROJECT_ID="$PROJECT_ID"
+    exec node --import tsx "$HARNESS_ROOT/runtime/mcp/harness-mcp-server/src/entrypoints/cursor.ts"
     ;;
-  start-a2a)      exec node --import tsx "$HARNESS_ROOT/runtime/a2a/harness-a2a-server/src/server.ts" "$@" ;;
-  obsidian)
-    SUB="${1:-}"; shift || true
-    exec node --import tsx "$HARNESS_ROOT/tools/gateway/obsidian-cli.ts" "$SUB" "$@"
+  start-hermes-mcp)
+    exec node --import tsx "$HARNESS_ROOT/runtime/mcp/harness-mcp-server/src/entrypoints/hermes-operator.ts"
     ;;
-  start-hermes-doctor)
-    PROJECT="${1:-${AEGIS_RPC_ROOT:-$HARNESS_ROOT/projects/aegis-rpc}}"
-    "$HARNESS_ROOT/cli/commands/doctor.sh" "$PROJECT"
-    node --import tsx "$HARNESS_ROOT/tools/gateway/index-project.ts" "$PROJECT"
+  status|smoke|sync-skills|sync-hermes|sync-kanban|new-task|verify-task|\
+  init-project|link-project|index-project|run-task|run-report|start-a2a|\
+  obsidian|start-hermes-doctor|audit|cursor-fleet)
+    echo "$CMD: disabled legacy command; no Agent Harness v1 activation gate exists" >&2
+    exit 2
     ;;
-  audit)
-    SUB="${1:-}"
-    PROJECT="${2:-${AEGIS_RPC_ROOT:-$HARNESS_ROOT/projects/aegis-rpc}}"
-    shift 2 || true
-    exec node --import tsx "$HARNESS_ROOT/runtime/audit-automation/cli.ts" "$SUB" "$PROJECT" "$@"
-    ;;
-  cursor-fleet)   exec "$HARNESS_ROOT/cli/commands/cursor-fleet.sh" "$@" ;;
   *)
-    echo "Usage: harness {doctor|status|smoke|audit|cursor-fleet|index-project|obsidian|start-a2a|start-mcp|run-task|...} <project> [args]"
+    echo "Usage: harness {doctor|projects|approval|runtime|task|state|worker|sync-cursor|start-mcp|start-hermes-mcp} [args]"
     exit 1
     ;;
 esac

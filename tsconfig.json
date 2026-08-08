@@ -15,10 +15,10 @@
     "core/**/*.ts",
     "rag/**/*.ts",
     "integrations/**/*.ts",
+    "cli/**/*.ts",
     "tools/gateway/**/*.ts",
     "runtime/mcp/harness-mcp-server/src/**/*.ts",
     "runtime/a2a/harness-a2a-server/src/**/*.ts",
-    "runtime/cursor-fleet/src/**/*.ts",
     "tests/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", "projects"]

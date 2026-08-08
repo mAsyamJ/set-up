@@ -24,7 +24,13 @@ function parseEnvFile(filePath) {
 }
 
 function resolveActiveWorkspace(harnessRoot, fallback) {
-  const envPath = path.join(harnessRoot, ".harness", "state", "active-project.env");
+  const stateHome =
+    process.env.HARNESS_STATE_HOME ||
+    path.join(
+      process.env.XDG_STATE_HOME || path.join(process.env.HOME || "", ".local", "state"),
+      "agent-harness"
+    );
+  const envPath = process.env.HARNESS_ACTIVE_PROJECT_ENV || path.join(stateHome, "active-project.env");
   const active = parseEnvFile(envPath);
   const candidate = active.AEGIS_WORKSPACE || active.AEGIS_RPC_ROOT;
   if (candidate) {
@@ -36,7 +42,8 @@ function resolveActiveWorkspace(harnessRoot, fallback) {
     const resolved = path.resolve(fromEnv);
     if (fs.existsSync(resolved)) return resolved;
   }
-  return path.resolve(fallback);
+  if (fallback) return path.resolve(fallback);
+  throw new Error("No active workspace; set AEGIS_WORKSPACE or use switch-project");
 }
 
 module.exports = { parseEnvFile, resolveActiveWorkspace };

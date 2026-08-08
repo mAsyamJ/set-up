@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Authenticate Cursor for Hermes bridge via `agent login` or CURSOR_API_KEY.
 set -euo pipefail
+echo "setup-cursor-bridge-auth: disabled legacy bridge credential flow" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

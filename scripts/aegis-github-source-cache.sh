@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+echo "aegis-github-source-cache: disabled legacy product cache" >&2
+exit 2
 
 mkdir -p research/opensrc-paths research/repos research/notes
 : > research/notes/github-cache.log

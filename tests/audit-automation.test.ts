@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { defaultConfig, writeConfig, readConfig } from "../runtime/audit-automation/config.ts";
-import { generateAuditReport } from "../runtime/audit-automation/report.ts";
-import { shouldRetryProviderError } from "../runtime/audit-automation/runner.ts";
-import type { AuditRunState } from "../runtime/audit-automation/state.ts";
+import { defaultConfig, writeConfig, readConfig } from "../runtime/audit-automation/config.js";
+import { generateAuditReport } from "../runtime/audit-automation/report.js";
+import { shouldRetryProviderError } from "../runtime/audit-automation/runner.js";
+import type { AuditRunState } from "../runtime/audit-automation/state.js";
 
 describe("audit automation", () => {
   it("builds midnight-audit defaults", () => {

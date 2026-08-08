@@ -1,30 +1,31 @@
 # Agent Harness Migration Log
 
-Started: 2026-05-25
+## 2026-07-23 - v1 Hardening
 
-## Classification (Phase 0)
+- Established Cursor-primary and Hermes-optional control planes.
+- Externalized machine project paths to the XDG project registry.
+- Moved runtime state to XDG state storage.
+- Added deny-by-default principals, exact human approvals, transactional task
+  leases, confined filesystem operations, trusted verification commands, and
+  redacted audit evidence.
+- Added restricted Cursor, Hermes operator, and lease-bound worker MCP
+  entrypoints.
+- Disabled A2A, fleet, legacy bridges, timers, port proxies, bootstrap
+  installers, and autonomous services.
+- Archived installable legacy user units and Hermes automation material.
+- Preserved product gitlinks and unknown-provenance product directories without
+  modifying their contents.
 
-| Path | Classification |
-|------|----------------|
-| `scripts/`, `tools/`, `systemd/`, `runtime/` | GENERIC_HARNESS |
-| `docs/kit/` | GENERIC_HARNESS |
-| `.agent-plugins/`, `.hermes/`, `.cursor/` | GENERIC_HARNESS |
-| `.skills/`, `skills/` | GENERIC_HARNESS (consolidate) |
-| `.kiro/` (kit root) | GENERIC_HARNESS (dedupe → project) |
-| `frontend/` | ARCHIVE → `examples/frontend-reference/` |
-| `research/` | GENERIC_HARNESS (Aegis notes → project) |
-| `templates/`, `prompts/` | GENERIC_HARNESS / ARCHIVE |
-| `aegis-rpc/` | PROJECT_AEGIS → `projects/aegis-rpc/` |
-| `plan.md`, `docs/00-16*.md`, `agents/`, `tasks/` | PROJECT_AEGIS → `projects/aegis-rpc/` |
-| `ORCHESTRATOR.md`, `DECISIONS.md` (kit root) | PROJECT_AEGIS → merge into project |
-| `checklists/`, `HACKATHON.md` | PROJECT_AEGIS → project archive |
+## Current Gate
 
-## Moves (completed 2026-05-25)
+Dependency-free policy, syntax, registry, doctor, storage-path, and focused
+security checks pass. The repository, npm cache, Node temporary directory, and
+Linux root resolve to Ubuntu-D's native `/dev/sdd` filesystem with ample space.
+Low capacity on `/mnt/c` remains a Windows-system-health warning but is not a
+dependency-install blocker because no required write path resolves there.
 
-- `aegis-rpc/` → `projects/aegis-rpc/`
-- Kit product docs → `projects/aegis-rpc/docs/specs/`
-- `plan.md` → `projects/aegis-rpc/docs/plan.md`
-- `tasks/`, `agents/` → `projects/aegis-rpc/.harness/`
-- Repo renamed: `aegis-hackathon-kit` → `agent-harness`
-- Harness scaffold: `core/`, `cli/`, `templates/`, `projects/`
-- Kit `.kiro/agents/` archived to `archive/pre-split/root-duplicates/kiro-agents-kit`
+The locked install, reviewed native rebuild, lint, typecheck, build, all 52
+tests, and aggregate acceptance gate pass. The disposable worker test reaches
+`review` with a verified commit and no remote under network-denied Bubblewrap.
+
+Hermes profiles, actual Hermes workers, systemd, and fleet remain inactive.

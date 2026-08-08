@@ -15,42 +15,21 @@ cd "$PROJECT"
 
 ERR=0
 
-# Read manifest commands via python3 or node
-run_manifest_cmd() {
-  local key="$1"
-  local cmd=""
-  if command -v python3 >/dev/null 2>&1 && [ -f "$MANIFEST" ]; then
-    cmd="$(python3 -c "
-import json, sys
-m = json.load(open('$MANIFEST'))
-print(m.get('commands', {}).get('$key', '') or '')
-" 2>/dev/null || true)"
-  fi
-  [ -n "$cmd" ] || return 0
-  echo "--- manifest command: $key ---"
-  echo "  $cmd"
-  if bash -c "$cmd"; then
-    echo "OK: $key"
-  else
-    echo "FAIL: $key"
-    ERR=1
-  fi
-}
-
 # Run verification keys from task frontmatter or default set
 VERIFY_KEYS="typecheck test smoke"
 if grep -q '^verification:' "$TASK" 2>/dev/null; then
   VERIFY_KEYS="$(awk '/^verification:/{f=1;next} f&&/^  - /{gsub(/^  - /,""); print; next} f&&/^[^ ]/{exit}' "$TASK" | tr '\n' ' ')"
 fi
 
-for key in $VERIFY_KEYS; do
-  run_manifest_cmd "$key"
-done
-
-# If no manifest, fallback
-if [ ! -f "$MANIFEST" ] && [ -f package.json ]; then
-  npm run typecheck --if-present 2>/dev/null || pnpm typecheck 2>/dev/null || true
-  npm test --if-present 2>/dev/null || pnpm test 2>/dev/null || true
+[ -f "$MANIFEST" ] || { echo "FAIL: missing $MANIFEST" >&2; exit 1; }
+VERIFY_JSON="$(python3 -c '
+import json, sys
+print(json.dumps({"commands": sys.argv[1:]}))
+' $VERIFY_KEYS)"
+echo "--- trusted verification commands: $VERIFY_KEYS ---"
+if ! HARNESS_GATEWAY_PROFILE=cursor-interactive \
+  "$AGENT_HARNESS_HOME/cli/harness" run-task "$PROJECT" verify.run "$VERIFY_JSON"; then
+  ERR=1
 fi
 
 # Check acceptance criteria checkboxes

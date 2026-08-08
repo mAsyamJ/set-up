@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Mirror Deeplake cloud summary list into ~/.deeplake/memory/index.md for grep/workflows.
 set -euo pipefail
+echo "sync-hivemind-local-index: disabled legacy memory integration" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

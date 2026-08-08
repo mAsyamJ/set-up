@@ -1,54 +1,19 @@
 {
-  "schema": "agent-harness.agents.v1",
+  "schema": "agent-harness.agents.v2",
+  "advisoryOnly": true,
+  "securityAuthority": "tools/policies/default.tool-policy.json",
   "agents": {
-    "orchestrator": {
-      "file": "orchestrator.agent.md",
-      "mode": "supervisor",
-      "allowed_tools": ["harness.project.inspect", "harness.task.move", "harness.verify.run"],
-      "forbidden_tools": ["shell.run", "repo.apply_patch"],
-      "handoffs": ["architect", "implementer", "qa", "security"]
-    },
     "architect": {
       "file": "architect.agent.md",
-      "mode": "plan",
-      "allowed_tools": ["repo.read", "repo.search", "harness.rag.search"],
-      "handoffs": ["implementer"]
-    },
-    "implementer": {
-      "file": "backend.agent.md",
-      "mode": "implement",
-      "allowed_tools": ["repo.read", "repo.search", "git.status", "git.diff", "task.move"],
-      "handoffs": ["qa", "security"]
+      "allowedTools": ["project.inspect", "repo.read", "repo.search", "rag.search"]
     },
     "security": {
       "file": "security.agent.md",
-      "mode": "review",
-      "allowed_tools": ["repo.read", "repo.search", "git.diff"],
-      "forbidden_tools": ["shell.run", "repo.apply_patch"],
-      "handoffs": ["qa"]
-    },
-    "qa": {
-      "file": "qa.agent.md",
-      "mode": "verify",
-      "allowed_tools": ["harness.verify.run", "git.status"],
-      "handoffs": ["docs"]
-    },
-    "docs": {
-      "file": "docs.agent.md",
-      "mode": "document",
-      "allowed_tools": ["repo.read", "task.move"],
-      "handoffs": []
+      "allowedTools": ["project.inspect", "repo.read", "repo.search", "git.diff"]
     },
     "reviewer": {
       "file": "reviewer.agent.md",
-      "mode": "review",
-      "allowed_tools": ["repo.read", "git.diff"],
-      "handoffs": ["orchestrator"]
+      "allowedTools": ["project.inspect", "repo.read", "git.diff"]
     }
-  },
-  "parallel_review": {
-    "trigger": "task.review",
-    "agents": ["security", "qa", "reviewer"],
-    "kanban_profiles": ["aegis-security", "aegis-qa"]
   }
 }

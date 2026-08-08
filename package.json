@@ -3,12 +3,22 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
+  "packageManager": "npm@11.13.0",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11 <12"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "node scripts/lint-policy.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
+    "test:security": "node --import tsx --test tests/tool-policy.test.ts tests/path-confinement.test.ts tests/redaction.test.ts tests/approval.test.ts tests/task-lease.test.ts",
+    "test:integration": "node --import tsx --test tests/project-registry.test.ts tests/mcp-profiles.test.ts tests/state-migration.test.ts",
+    "test:e2e": "node --import tsx --test tests/worker-canary.test.ts",
     "gateway": "node --import tsx tools/gateway/cli.ts",
     "start-mcp": "node --import tsx runtime/mcp/harness-mcp-server/src/server.ts",
-    "start-a2a": "node --import tsx runtime/a2a/harness-a2a-server/src/server.ts",
+    "start-a2a": "node scripts/refuse-a2a.mjs",
     "acceptance": "bash scripts/harness-acceptance.sh"
   },
   "devDependencies": {
@@ -19,7 +29,6 @@
     "typescript": "^5.7.0"
   },
   "dependencies": {
-    "@flashbots/mev-share-client": "^0.7.13",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "better-sqlite3": "^11.8.1",
     "express": "^5.2.1",

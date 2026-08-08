@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Switch Hermes bridge default provider (Kiro vs Cursor).
 set -euo pipefail
+echo "aegis-model: disabled; Hermes and Cursor have separate model control planes" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

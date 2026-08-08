@@ -1,0 +1,13 @@
+[Unit]
+# ARCHIVED: unsafe legacy unit; not an activation source.
+Description=Refresh Windows port proxy for WSL dashboard (localhost:9119)
+After=network.target hermes-dashboard.service
+PartOf=aegis-stack.target
+
+[Service]
+Type=oneshot
+ExecStart=@AGENT_HARNESS_HOME@/scripts/update-wsl-portproxy.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=aegis-stack.target

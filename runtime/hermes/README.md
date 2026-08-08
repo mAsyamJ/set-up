@@ -1,8 +1,15 @@
-# Hermes + Harness bridge
+# Hermes Integration
 
-Hermes remains the external 24/7 scheduler. This folder augments it with harness-specific skills and cron docs.
+Hermes is an optional operator with its own model and provider configuration.
+It connects to the Harness through the fixed `hermes-operator` stdio MCP
+entrypoint. Hermes is not a model backend for Cursor and is not an approval
+authority.
 
-- `skill-harness-mcp/` — points operators to harness MCP tools
-- Scheduled doctor: `cli/harness start-hermes-doctor <project>`
+The initial profile is foreground-only and read-only. Bounded task proposal is
+a separate gate. Write, verification, commit, review, service management,
+permission response, merge, push, deploy, and fleet capabilities are not
+available to the operator profile.
 
-Do not replace `tools/real-hermes-mcp/` — augment only.
+See `docs/runbooks/hermes-activation.md`. Files under
+`docs/archive/hermes-runtime/` are historical and must not be installed or
+loaded.

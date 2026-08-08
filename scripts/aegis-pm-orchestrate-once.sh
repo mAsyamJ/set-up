@@ -2,6 +2,9 @@
 # Lane O: headless PM loop — DECISIONS sync, D3 script deploy, backlog seed, dispatch (no gateway LLM).
 set -euo pipefail
 
+echo "aegis-pm-orchestrate-once: disabled; legacy product automation is quarantined" >&2
+exit 2
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh
 source "${SCRIPT_DIR}/lib/paths.sh"

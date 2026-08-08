@@ -1,17 +1,9 @@
-# Runtime config (repo)
+# Harness Runtime
 
-Local Hermes/Kiro **examples** and env templates. Live runtime state lives in `~/.hermes/` and user systemd.
+The active v1 runtime consists of restricted stdio MCP entrypoints and
+lease-bound state/worktree components. See
+`../docs/architecture/agent-harness-v1.md`.
 
-| Path | Purpose |
-|------|---------|
-| [hermes-kiro/](hermes-kiro/) | Bridge/gateway notes and examples |
-| [hermes-hivemind.env.example](hermes-hivemind.env.example) | Example Hivemind-related env vars |
-
-Active services (user):
-
-```bash
-systemctl --user status hermes-gateway kiro-openai-bridge
-```
-
-Implementation: [tools/kiro-openai-bridge/](../tools/kiro-openai-bridge/), [systemd/user/](../systemd/user/).  
-Playbooks: [docs/kit/](../docs/kit/).
+A2A, cursor-fleet, Kiro/OpenAI bridges, Telegram automation, timers, port
+proxies, and legacy Hermes gateway units are disabled. No runtime service is
+installed, started, or enabled by repository diagnostics.

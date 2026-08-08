@@ -1,3 +1,6 @@
+import { randomUUID } from "node:crypto";
+import type { Principal } from "./auth/principal.js";
+
 export type ToolResult<T = unknown> = {
   ok: boolean;
   tool: string;
@@ -7,9 +10,11 @@ export type ToolResult<T = unknown> = {
 
 export type ProjectManifest = {
   schema?: string;
+  harness?: { disposableCanary?: boolean };
   project?: { name?: string; type?: string; root?: string; description?: string };
   paths?: { product?: string[]; docs?: string[]; tasks?: string; state?: string };
   commands?: Record<string, string>;
+  commandIds?: Record<string, string>;
   rules?: { noSecrets?: boolean; requireVerification?: boolean; requireTaskFile?: boolean };
 };
 
@@ -17,9 +22,11 @@ export type GatewayContext = {
   projectRoot: string;
   harnessRoot: string;
   runId: string;
-  agentId?: string;
+  workspaceId: string;
+  principal: Principal;
+  leaseToken?: string;
 };
 
 export function createRunId(): string {
-  return `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return `run_${randomUUID()}`;
 }

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Seed up to 20 fleet child tasks for load testing (idempotent keys).
 set -euo pipefail
+echo "aegis-kanban-seed-fleet-wave: disabled; fleet is not activated" >&2
+exit 2
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh
 source "${SCRIPT_DIR}/lib/paths.sh"

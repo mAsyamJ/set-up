@@ -30,21 +30,22 @@ HARNESS="$AGENT_HARNESS_HOME/cli/harness"
 
 case "$CMD" in
   list-projects)
-    REG="$AGENT_HARNESS_HOME/projects/registry.json"
+    REG="$(project_registry_file)"
     [ -f "$REG" ] || { echo "Missing registry: $REG" >&2; exit 1; }
     python3 -c "
 import json, os
 reg = json.load(open('$REG'))
 home = os.environ.get('AGENT_HARNESS_HOME', '$AGENT_HARNESS_HOME')
 active = os.environ.get('AEGIS_DEFAULT_PROJECT', '')
-state = '$AGENT_HARNESS_HOME/.harness/state/active-project.env'
+state = '$HARNESS_ACTIVE_PROJECT_ENV'
 if os.path.isfile(state):
     for line in open(state):
         if line.startswith('export AEGIS_DEFAULT_PROJECT='):
             active = line.strip().split('=', 1)[1]
 for slug, cfg in reg.get('projects', {}).items():
     path = cfg.get('path', '')
-    abs_path = path if os.path.isabs(path) else os.path.join(home, path)
+    base = home if reg.get('pathBase', 'harness') == 'harness' else os.path.dirname(os.path.abspath('$REG'))
+    abs_path = path if os.path.isabs(path) else os.path.join(base, path)
     mark = '*' if slug == active else ' '
     print(f\"{mark} {slug:14} {cfg.get('displayName', slug):20} kanban={cfg.get('kanban', '')} path={abs_path}\")
 "

@@ -25,6 +25,10 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/settings.json
+.cursor/mcp.json
+.cursor/hooks-state*
+.kiro/mcp.json
+.kiro/settings/mcp.json
 
 # Logs
 *.log
@@ -34,6 +38,9 @@ npm-debug.log*
 .opensrc-cache/
 *.local
 runtime/aegis-model.json
+.harness/state/
+.harness/worktrees/
+projects/registry.local.json
 
 # Foundry dependencies / embedded git repos
 projects/aegis-rpc/contracts/lib/
@@ -72,6 +79,20 @@ dist/
 .harness/state/
 **/.harness/state/
 **/.harness/worktrees/
+**/.harness/index/
+**/.harness/cache/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+
+# Archives and machine-local recovery artifacts
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.bundle
 
 # Env files
 .env

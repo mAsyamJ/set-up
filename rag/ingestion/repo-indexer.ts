@@ -3,6 +3,8 @@ import path from "node:path";
 import type { RagStore } from "../stores/sqlite-fts.js";
 import type { SourceKind } from "../policies/source-priority.js";
 import { isSecretPath } from "../../core/policy/path-policy.js";
+import { resolveInProject } from "../../core/policy/path-policy.js";
+import { redactText } from "../../core/security/redaction.js";
 
 function shouldIndex(filePath: string, include: string[], exclude: string[]): boolean {
   if (isSecretPath(filePath)) return false;
@@ -13,15 +15,22 @@ function shouldIndex(filePath: string, include: string[], exclude: string[]): bo
 }
 
 function indexFile(store: RagStore, abs: string, source: SourceKind, rootLabel: string): void {
-  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return;
-  const body = fs.readFileSync(abs, "utf8");
-  const title = path.basename(abs);
+  let confined: string;
+  try {
+    confined = resolveInProject(rootLabel, path.relative(rootLabel, abs));
+  } catch {
+    return;
+  }
+  if (!fs.existsSync(confined) || !fs.statSync(confined).isFile()) return;
+  if (fs.statSync(confined).size > 1_000_000) return;
+  const body = redactText(fs.readFileSync(confined, "utf8"));
+  const title = path.basename(confined);
   store.upsert({
-    path: abs,
+    path: confined,
     source,
     title,
     body: body.slice(0, 50_000),
-    mtime: fs.statSync(abs).mtimeMs,
+    mtime: fs.statSync(confined).mtimeMs,
   });
 }
 
@@ -29,6 +38,7 @@ function walkDir(dir: string, cb: (file: string) => void): void {
   if (!fs.existsSync(dir)) return;
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, ent.name);
+    if (ent.isSymbolicLink()) continue;
     if (ent.isDirectory()) {
       if (ent.name === "node_modules" || ent.name === ".git") continue;
       walkDir(full, cb);
@@ -78,7 +88,7 @@ export function indexRepo(
 ): number {
   store.clearSource("repo");
   const include = [...productPaths, ...docPaths];
-  const exclude = ["node_modules", ".git", "dist", ".harness/state"];
+  const exclude = ["node_modules", ".git", "dist", "build", ".next", ".turbo", ".vercel", ".harness/state", ".harness/worktrees"];
   let n = 0;
   const roots = include.length ? include.map((p) => path.join(projectRoot, p)) : [projectRoot];
   for (const root of roots) {

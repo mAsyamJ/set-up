@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+echo "install-midnight-audit-skills: disabled product-specific installer" >&2
+exit 2
 
 BASE="${BASE:-$HOME/dev/Project}"
 HARNESS_ROOT="${HARNESS_ROOT:-$HOME/dev/Project/agent-harness}"

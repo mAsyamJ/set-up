@@ -1,0 +1,42 @@
+{
+  "npm.test": {
+    "file": "npm",
+    "args": ["test"],
+    "cwdPolicy": "worktree",
+    "timeoutMs": 120000,
+    "outputLimitBytes": 65536,
+    "network": "deny"
+  },
+  "npm.build": {
+    "file": "npm",
+    "args": ["run", "build"],
+    "cwdPolicy": "worktree",
+    "timeoutMs": 120000,
+    "outputLimitBytes": 65536,
+    "network": "deny"
+  },
+  "npm.lint": {
+    "file": "npm",
+    "args": ["run", "lint"],
+    "cwdPolicy": "worktree",
+    "timeoutMs": 120000,
+    "outputLimitBytes": 65536,
+    "network": "deny"
+  },
+  "npm.typecheck": {
+    "file": "npm",
+    "args": ["run", "typecheck"],
+    "cwdPolicy": "worktree",
+    "timeoutMs": 120000,
+    "outputLimitBytes": 65536,
+    "network": "deny"
+  },
+  "canary.test": {
+    "file": "node",
+    "args": ["--test"],
+    "cwdPolicy": "worktree",
+    "timeoutMs": 30000,
+    "outputLimitBytes": 32768,
+    "network": "deny"
+  }
+}

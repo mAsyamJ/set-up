@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Install 10-minute PM status cron (script-only, no LLM) for Telegram origin delivery.
 set -euo pipefail
+echo "install-aegis-pm-cron-10m: disabled; Hermes cron is not activated" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

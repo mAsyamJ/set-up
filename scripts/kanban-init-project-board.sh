@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Create Hermes Kanban board for a harness project and seed one smoke task.
 set -euo pipefail
+echo "kanban-init-project-board: disabled legacy product automation" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

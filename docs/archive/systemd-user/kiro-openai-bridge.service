@@ -1,0 +1,27 @@
+[Unit]
+# ARCHIVED: unsafe legacy unit; not an activation source.
+Description=Kiro OpenAI-Compatible Bridge for Hermes (127.0.0.1 only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@AGENT_HARNESS_HOME@/tools/kiro-openai-bridge
+EnvironmentFile=-@HOME@/.hermes/.env
+Environment=HOME=@HOME@
+Environment=AGENT_HARNESS_HOME=@AGENT_HARNESS_HOME@
+Environment=AEGIS_WORKSPACE=@AEGIS_RPC_ROOT@
+Environment=AEGIS_REPO_PATH=@AGENT_HARNESS_HOME@
+Environment=HARNESS_LEGACY_BRIDGE_ENABLED=0
+Environment=AEGIS_MODEL_STATE=@HARNESS_STATE_HOME@/model.json
+Environment=AEGIS_BRIDGE_HERMES_MAX_MESSAGES=45
+Environment=AEGIS_BRIDGE_CURSOR_AGENT_MAX_MESSAGES=24
+Environment=AEGIS_BRIDGE_SSE_HEARTBEAT_MS=12000
+Environment=CURSOR_BRIDGE_MODE=ask
+Environment=PATH=@AEGIS_NODE_DIR@:@HOME@/.local/bin:/usr/bin:/bin
+ExecStart=@AEGIS_NODE@ server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

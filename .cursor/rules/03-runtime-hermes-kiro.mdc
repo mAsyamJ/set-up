@@ -1,49 +1,15 @@
 ---
-description: Hermes gateway, multi-provider OpenAI bridge (Kiro/Cursor), systemd services, and forbidden legacy Telegram gateway.
-alwaysApply: false
-globs:
-  - "tools/kiro-openai-bridge/**"
-  - "systemd/**"
-  - "scripts/**"
-  - "runtime/**"
-  - ".agent-plugins/**"
+description: Disabled-by-default Agent Harness runtime rules
+alwaysApply: true
 ---
 
-# Runtime: Hermes + multi-provider bridge
+# Runtime safety
 
-| Component | Role |
-|-----------|------|
-| **Hermes** (`hermes-gateway.service`) | 24/7 Telegram, skills, `/plan`, Kanban dispatch + SQLite boards |
-| **Hermes dashboard** (`hermes dashboard`, optional `hermes-dashboard.service`) | Web UI on **9119** — Kanban in browser, config; **not** started by the gateway alone |
-| **Model bridge** (`kiro-openai-bridge.service`, `127.0.0.1:8787`) | OpenAI-compatible backend for Hermes → Kiro **or** headless Cursor Agent |
-| **Kiro CLI** | Primary coding agent in repo (`kiro-cli --agent aegis-orchestrator`) |
-
-Switch Telegram inference backend:
-
-```bash
-scripts/aegis-model.sh status|kiro|cursor
-# or Telegram: /provider (requires aegis-provider-switch skill)
-```
-
-## Active services (user systemd)
-
-```bash
-systemctl --user status hermes-gateway kiro-openai-bridge
-```
-
-## Forbidden
-
-- **Do not enable** `telegram-kiro-gateway.service` (bypasses bridge/Hivemind path)
-- Legacy code lives under `tools/archive/telegram-kiro-gateway/` for reference only
-- **Do not expose** `:8787` beyond `127.0.0.1`
-
-## Smoke check
-
-```bash
-aegis-dev
-# or: scripts/start-aegis-dev.sh
-scripts/verify-hivemind-shared-memory.sh
-curl -sf http://127.0.0.1:8787/v1/admin/provider
-```
-
-Details: `docs/kit/07-memory-architecture.md`, `docs/kit/02-hermes-24-7.md`
+- Cursor and Hermes use separate model/provider configuration.
+- Hermes must remain optional and offline-safe.
+- Fleet, A2A, legacy bridges, port proxies, timers, and installers are disabled.
+- Initial integrations use separate stdio MCP entrypoints.
+- Hermes operator profiles expose read-only tools and bounded task submission
+  only. Approval response and worker tools are never operator tools.
+- Listeners, when introduced later, bind to loopback and authenticate.
+- Never use Hermes `--oneshot`, `--yolo`, or `--accept-hooks` for Harness work.

@@ -1,0 +1,35 @@
+[Unit]
+Description=Hermes Agent - optional read-only Harness operator
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+UMask=0077
+WorkingDirectory=@HERMES_PROFILE_HOME@
+Environment=HOME=@HOME@
+Environment=HERMES_HOME=@HERMES_PROFILE_HOME@
+Environment=HARNESS_PROJECT_REGISTRY=@HARNESS_PROJECT_REGISTRY@
+Environment=HARNESS_STATE_HOME=@HARNESS_STATE_HOME@
+ExecCondition=@HARNESS_ROOT@/cli/harness doctor
+ExecStart=@HERMES_OPERATOR_BIN@ gateway run
+Restart=on-failure
+RestartSec=15
+KillMode=control-group
+KillSignal=SIGTERM
+TimeoutStopSec=120
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=@HERMES_PROFILE_HOME@ @HARNESS_STATE_HOME@
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=2G
+TasksMax=256
+StandardOutput=journal
+StandardError=journal
+
+# Intentionally no [Install] section. Enabling requires a separate reviewed step.

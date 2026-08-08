@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Script-only Base Sepolia deploy (no LLM). Requires DECISIONS D3 approval + DEPLOYER_PRIVATE_KEY in local env.
 set -euo pipefail
+echo "aegis-d3-deploy-once: disabled; deployment is outside Agent Harness v1" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/paths.sh

@@ -2,6 +2,8 @@
 # Hermes cron: 30-minute Kanban orchestrator status (no LLM, no bridge).
 # Replaces agent+kanban-orchestrator skill tick — use cursor-fleet / Lane O for dispatch.
 set -euo pipefail
+echo "aegis-kanban-orchestrator-tick: disabled legacy scheduler" >&2
+exit 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export AGENT_HARNESS_HOME="${AGENT_HARNESS_HOME:-${AEGIS_REPO_ROOT:-$HOME/dev/Project/agent-harness}}"

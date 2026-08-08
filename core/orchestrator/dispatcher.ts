@@ -13,13 +13,11 @@ export function dispatchStep(harnessRoot: string, step: PlanStep): DispatchResul
   return { agent: routed.id, tools, note: step.action };
 }
 
-export async function triggerParallelReview(projectRoot: string, taskFile: string): Promise<void> {
-  const { execFile } = await import("node:child_process");
-  const { promisify } = await import("node:util");
-  const script = process.env.AGENT_HARNESS_HOME
-    ? `${process.env.AGENT_HARNESS_HOME}/scripts/harness-parallel-review.sh`
-    : "";
-  if (script) {
-    await promisify(execFile)("bash", [script, taskFile], { env: { ...process.env, AEGIS_RPC_ROOT: projectRoot } }).catch(() => {});
-  }
+export async function triggerParallelReview(
+  _projectRoot: string,
+  _taskFile: string
+): Promise<never> {
+  throw new Error(
+    "legacy parallel review is disabled; review requires the lease-bound task workflow"
+  );
 }
